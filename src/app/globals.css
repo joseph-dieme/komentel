@@ -1,0 +1,522 @@
+@import "tailwindcss";
+
+:root {
+  --background: #090A0F;
+  --foreground: #F3F4F6;
+  
+  --primary: #6366F1;
+  --primary-hover: #4F46E5;
+  --accent: #F43F5E;
+  --accent-hover: #E11D48;
+  
+  --font-inter: var(--font-inter);
+  --font-playfair: var(--font-playfair);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-serif: var(--font-playfair), ui-serif, Georgia;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Premium Glassmorphic Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+/* Custom premium styles */
+.shadow-premium {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.shadow-premium-hover {
+  box-shadow: 0 10px 40px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.shadow-popover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.glow-indigo {
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+}
+
+.glow-accent {
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.2);
+}
+
+/* Background patterns */
+.bg-grid-pattern {
+  background-size: 24px 24px;
+  background-image: 
+    radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* Light mode overrides */
+:root.light {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  
+  --primary: #4F46E5;
+  --primary-hover: #3730A3;
+  --accent: #E11D48;
+  --accent-hover: #BE123C;
+}
+
+:root.light body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+:root.light .bg-grid-pattern {
+  background-image: radial-gradient(circle, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+}
+
+/* Glassmorphic overrides for light mode */
+:root.light .bg-\[\#12131C\]\/40 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+:root.light .hover\:bg-\[\#12131C\]\/80:hover {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+:root.light .bg-\[\#12131C\]\/50 {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+}
+:root.light .bg-\[\#12131C\]\/60 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+:root.light .bg-\[\#12131C\]\/90 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+:root.light .hover\:border-white\/10:hover {
+  border-color: rgba(15, 23, 42, 0.15) !important;
+}
+:root.light .bg-slate-955\/60,
+:root.light .bg-slate-950\/60 {
+  background-color: rgba(248, 250, 252, 0.8) !important;
+}
+:root.light .bg-slate-900\/95 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+:root.light .bg-slate-950 {
+  background-color: #F1F5F9 !important;
+}
+:root.light .bg-slate-900\/90 {
+  background-color: rgba(241, 245, 249, 0.9) !important;
+}
+:root.light .bg-white\/5 {
+  background-color: #E2E8F0 !important; /* Solid visible slate-200 background */
+  border-color: #CBD5E1 !important;
+}
+:root.light .bg-white\/10 {
+  background-color: #E2E8F0 !important;
+}
+:root.light .hover\:bg-white\/5:hover {
+  background-color: #CBD5E1 !important; /* Slightly darker slate-300 on hover */
+}
+:root.light .hover\:bg-white\/10:hover {
+  background-color: #CBD5E1 !important;
+}
+
+/* Custom theme classes and contrast adjustments */
+.text-slate-450 {
+  color: #9CA3AF !important;
+}
+.text-slate-700 {
+  color: #6B7280 !important; /* Better debate ranks visibility in dark mode */
+}
+
+/* Light mode overrides */
+:root.light .text-slate-700 {
+  color: #94A3B8 !important;
+}
+
+:root.light .text-red-400 {
+  color: #DC2626 !important; /* Make delete buttons legible */
+}
+
+/* Custom light mode overrides for light/white texts */
+:root.light .text-white:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *):not(.bg-green-500 *) {
+  color: #0F172A !important;
+}
+
+:root.light .text-slate-200:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *),
+:root.light .text-slate-205:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *),
+:root.light .text-slate-300:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *) {
+  color: #0F172A !important; /* Solid dark text */
+}
+
+:root.light .text-slate-350:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *),
+:root.light .text-slate-400:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *) {
+  color: #1E293B !important; /* High contrast text */
+}
+
+:root.light .text-slate-450:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *),
+:root.light .text-slate-455:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *) {
+  color: #334155 !important;
+}
+
+:root.light .text-slate-500:not(.image-overlay-card *):not(.brand-gradient-card *):not(.bg-primary *):not(.bg-accent *) {
+  color: #475569 !important; /* Legible secondary text */
+}
+
+/* Card and dividing borders in Light Mode */
+:root.light .border-white\/5,
+:root.light .border-white\/10,
+:root.light .border-white\/12,
+:root.light .border-white\/15,
+:root.light .border-white\/20 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Header/Footer/Headings text colors in light mode */
+:root.light header .text-white,
+:root.light footer .text-white,
+:root.light h1.text-white,
+:root.light h2.text-white,
+:root.light h3.text-white,
+:root.light h4.text-white,
+:root.light p.text-white {
+  color: #0F172A !important;
+}
+
+/* Inputs and textareas */
+:root.light input.text-white,
+:root.light textarea.text-white,
+:root.light select {
+  color: #0F172A !important;
+  background-color: #FFFFFF !important;
+}
+
+/* Placeholders contrast */
+:root.light ::placeholder,
+:root.light input::placeholder,
+:root.light textarea::placeholder {
+  color: #64748B !important;
+  opacity: 1 !important;
+}
+
+/* Smart hover rules - prevent text from fading to white on light backgrounds */
+:root.light .hover\:text-white:hover:not(.hover\:bg-primary:hover):not(.hover\:bg-primary-hover:hover):not(.hover\:bg-accent:hover):not(.hover\:bg-accent-hover:hover) {
+  color: #0F172A !important;
+}
+:root.light .hover\:text-slate-50:hover:not(.hover\:bg-primary:hover):not(.hover\:bg-primary-hover:hover):not(.hover\:bg-accent:hover):not(.hover\:bg-accent-hover:hover),
+:root.light .hover\:text-slate-100:hover:not(.hover\:bg-primary:hover):not(.hover\:bg-primary-hover:hover):not(.hover\:bg-accent:hover):not(.hover\:bg-accent-hover:hover),
+:root.light .hover\:text-slate-200:hover:not(.hover\:bg-primary:hover):not(.hover\:bg-primary-hover:hover):not(.hover\:bg-accent:hover):not(.hover\:bg-accent-hover:hover),
+:root.light .hover\:text-slate-300:hover:not(.hover\:bg-primary:hover):not(.hover\:bg-primary-hover:hover):not(.hover\:bg-accent:hover):not(.hover\:bg-accent-hover:hover) {
+  color: #0F172A !important;
+}
+
+/* Active selectors and tabs */
+:root.light .border-b-2.border-primary.text-white {
+  color: var(--primary) !important;
+}
+:root.light .bg-primary\/25.text-white {
+  color: var(--primary) !important;
+}
+
+/* Disabled states overrides */
+:root.light button:disabled,
+:root.light button[disabled],
+:root.light input:disabled,
+:root.light textarea:disabled {
+  background-color: #E2E8F0 !important;
+  color: #94A3B8 !important;
+  border-color: #CBD5E1 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  opacity: 0.7 !important;
+}
+
+/* Tooltips */
+:root.light .bg-slate-950 {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+:root.light .bg-slate-950 .text-white {
+  color: #0F172A !important;
+}
+
+/* Border overrides */
+:root.light .border-white\/10 {
+  border-color: #CBD5E1 !important; /* Visible borders */
+}
+:root.light .border-white\/5 {
+  border-color: #E2E8F0 !important;
+}
+:root.light .border-l.border-white\/10 {
+  border-left-color: #CBD5E1 !important; /* Clearer thread lines */
+}
+
+/* Button style overrides (e.g. Reactions triggers) */
+:root.light button.border-transparent.text-slate-400 {
+  border-color: #CBD5E1 !important;
+  background-color: #E2E8F0 !important;
+  color: #1E293B !important;
+}
+
+/* Unvoted poll bars */
+:root.light .bg-white\/40 {
+  background-color: rgba(15, 23, 42, 0.25) !important;
+}
+
+/* Dark component blocks mapped to light */
+:root.light .bg-slate-800,
+:root.light .bg-slate-900,
+:root.light .bg-slate-905 {
+  background-color: #E2E8F0 !important;
+  color: #0F172A !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+:root.light .bg-slate-900.text-slate-350 {
+  background-color: #F1F5F9 !important;
+  color: #334155 !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Glow effects in light mode */
+:root.light .glow-indigo {
+  box-shadow: 0 0 25px rgba(79, 70, 229, 0.08);
+}
+:root.light .glow-accent {
+  box-shadow: 0 0 25px rgba(225, 29, 72, 0.08);
+}
+:root.light ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.01);
+}
+:root.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+}
+:root.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 70, 229, 0.3);
+}
+
+/* Light mode Daily Poll and Rules cards contrast fixes */
+:root.light .brand-gradient-card {
+  background-image: linear-gradient(to bottom right, var(--primary), #4F46E5) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+:root.light .brand-gradient-card h3,
+:root.light .brand-gradient-card h3.text-white,
+:root.light .brand-gradient-card .text-white,
+:root.light .brand-gradient-card .text-slate-100,
+:root.light .brand-gradient-card p.text-white {
+  color: #FFFFFF !important;
+}
+
+:root.light .brand-gradient-card .text-white\/70 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:root.light .brand-gradient-card .text-white\/50 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Ensure child icons in light gradient cards are legible */
+:root.light .brand-gradient-card .text-accent {
+  color: #FF2E93 !important; /* Vibrant rose pink for high-contrast on blue */
+}
+
+/* Force elements inside brand-gradient-card to retain transparent white styles in Light Mode */
+:root.light .brand-gradient-card .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:root.light .brand-gradient-card .bg-white\/40 {
+  background-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Daily Poll Buttons inside brand-gradient-card in light mode */
+:root.light .brand-gradient-card .poll-option-btn {
+  background-color: #12131C !important; /* Solid dark background */
+  color: #FFFFFF !important; /* Pure white text */
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+:root.light .brand-gradient-card .poll-option-btn:hover {
+  background-color: #020617 !important; /* Ultra-dark background on hover */
+  color: #FFFFFF !important;
+}
+
+:root.light .brand-gradient-card .poll-option-btn.bg-white {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #FFFFFF !important;
+}
+
+/* Premium Vote Submit Button styling */
+.vote-submit-btn {
+  background-color: #090A0F !important; /* Very dark background */
+  color: #FFFFFF !important; /* White text */
+  border-color: #059669 !important; /* Dark green border */
+  border-width: 2px !important; /* Pronounced contour */
+}
+
+.vote-submit-btn:hover:not(:disabled) {
+  background-color: #020617 !important; /* Ultra-dark background */
+  color: #FFFFFF !important;
+  border-color: #10B981 !important; /* Brighter green hover border */
+}
+
+.vote-submit-btn:disabled {
+  background-color: #12131C !important; /* Dark grey background */
+  color: rgba(255, 255, 255, 0.35) !important; /* Muted white text */
+  border-color: #064E3B !important; /* Dark forest green border when disabled */
+  opacity: 1 !important; /* Override global opacity */
+}
+
+/* Portal card container - highly visible in dark mode, responsive border */
+.portal-card {
+  background-color: rgba(20, 22, 34, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+}
+.portal-card:hover {
+  background-color: rgba(24, 26, 42, 0.95) !important;
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.08);
+}
+
+/* Inner item list cards - visible dark boundaries */
+.portal-item {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+.portal-item:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Light mode overrides for portal card designs */
+:root.light .portal-card {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+}
+:root.light .portal-card:hover {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(79, 70, 229, 0.35) !important;
+  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.06);
+}
+
+:root.light .portal-item {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+:root.light .portal-item:hover {
+  background-color: rgba(15, 23, 42, 0.08) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Image overlay card overrides to keep texts white in Light Mode */
+.image-overlay-card h1,
+.image-overlay-card h2,
+.image-overlay-card h3,
+.image-overlay-card h4,
+.image-overlay-card p,
+.image-overlay-card span,
+.image-overlay-card button,
+.image-overlay-card a,
+.image-overlay-card div {
+  color: #FFFFFF !important;
+}
+.image-overlay-card .text-slate-350,
+.image-overlay-card .text-slate-400,
+.image-overlay-card .text-slate-300,
+.image-overlay-card .text-slate-205,
+.image-overlay-card .text-slate-200 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+.image-overlay-card .text-slate-500 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.image-overlay-card .border-white\/10,
+.image-overlay-card .border-white\/5,
+.image-overlay-card .border-white\/15 {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Highly specific light mode overrides to win over general light mode rules */
+:root.light .image-overlay-card h1,
+:root.light .image-overlay-card h2,
+:root.light .image-overlay-card h2 a,
+:root.light .image-overlay-card h3,
+:root.light .image-overlay-card h3 a,
+:root.light .image-overlay-card h3.text-white,
+:root.light .image-overlay-card h4,
+:root.light .image-overlay-card p,
+:root.light .image-overlay-card span,
+:root.light .image-overlay-card a,
+:root.light .image-overlay-card button,
+:root.light .image-overlay-card div {
+  color: #FFFFFF !important;
+}
+
+:root.light .image-overlay-card .text-slate-300,
+:root.light .image-overlay-card .text-slate-205,
+:root.light .image-overlay-card .text-slate-200 {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+:root.light .image-overlay-card .text-slate-350,
+:root.light .image-overlay-card .text-slate-400 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+:root.light .image-overlay-card .text-slate-500 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+:root.light .image-overlay-card .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+:root.light .image-overlay-card .border-white\/5 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Hover overrides for links inside overlay cards */
+.image-overlay-card a:hover,
+.image-overlay-card h2 a:hover,
+.image-overlay-card h3 a:hover,
+:root.light .image-overlay-card a:hover,
+:root.light .image-overlay-card h2 a:hover,
+:root.light .image-overlay-card h3 a:hover {
+  color: var(--primary) !important;
+}
+
+
+
+
