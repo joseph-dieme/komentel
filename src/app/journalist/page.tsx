@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useKomentel } from "@/context/KomentelContext";
-import { PlusCircle, BarChart2, DollarSign, BookOpen, MessageSquare, Swords, Eye, CheckCircle2, AlertTriangle, ArrowRight, Plus, Trash } from "lucide-react";
+import { PlusCircle, BarChart2, DollarSign, BookOpen, MessageSquare, Swords, Eye, CheckCircle2, AlertTriangle, ArrowRight, Plus, Trash, Image as ImageIcon } from "lucide-react";
 
 const defaultMediaLibrary = [
   { id: "img-1", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800", title: "Université & Éducation", tag: "Éducation" },
@@ -30,7 +30,7 @@ export default function JournalistPage() {
   const [paragraphs, setParagraphs] = useState<string[]>([""]);
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
-  const [additionalImagesStr, setAdditionalImagesStr] = useState("");
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [isPublished, setIsPublished] = useState(false);
 
   // Media Library States
@@ -99,20 +99,12 @@ export default function JournalistPage() {
   };
 
   const handleAddAdditionalImage = (url: string) => {
-    const current = additionalImagesStr
-      ? additionalImagesStr.split(",").map(u => u.trim()).filter(u => u !== "")
-      : [];
-    if (current.includes(url)) return;
-    const next = [...current, url].join(", ");
-    setAdditionalImagesStr(next);
+    if (additionalImages.includes(url)) return;
+    setAdditionalImages(prev => [...prev, url]);
   };
 
   const handleRemoveAdditionalImage = (url: string) => {
-    const current = additionalImagesStr
-      ? additionalImagesStr.split(",").map(u => u.trim()).filter(u => u !== "")
-      : [];
-    const next = current.filter(u => u !== url).join(", ");
-    setAdditionalImagesStr(next);
+    setAdditionalImages(prev => prev.filter(u => u !== url));
   };
 
   const openMediaModal = (target: 'COVER' | 'ADDITIONAL') => {
@@ -145,12 +137,6 @@ export default function JournalistPage() {
     // Filter out empty paragraphs
     const filteredParagraphs = paragraphs.map(p => p.trim()).filter(p => p !== "");
     
-    // Parse additional images comma-separated string
-    const additionalImages = additionalImagesStr
-      .split(",")
-      .map(url => url.trim())
-      .filter(url => url !== "");
-
     addArticle(
       title,
       category,
@@ -169,7 +155,7 @@ export default function JournalistPage() {
     setParagraphs([""]);
     setImageUrl("");
     setVideoUrl("");
-    setAdditionalImagesStr("");
+    setAdditionalImages([]);
     setContinent("Monde");
     setIsPublished(true);
     setTimeout(() => setIsPublished(false), 5000);
@@ -457,36 +443,57 @@ export default function JournalistPage() {
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Photos additionnelles (URLs séparées par des virgules)</label>
-                        <div className="flex gap-2">
-                          <input 
-                            type="text" 
-                            placeholder="Ex: https://image1.jpg, https://image2.jpg..." 
-                            value={additionalImagesStr}
-                            onChange={e => setAdditionalImagesStr(e.target.value)}
-                            disabled={!user.accredited}
-                            className="flex-1 border border-white/10 bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                          />
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">
+                            Photos additionnelles
+                          </label>
                           <button
                             type="button"
                             onClick={() => openMediaModal("ADDITIONAL")}
                             disabled={!user.accredited}
-                            className="bg-primary hover:bg-primary-hover disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-xs font-bold px-3.5 rounded-lg flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                            className="bg-primary/20 hover:bg-primary/30 border border-primary/30 disabled:bg-slate-800 disabled:text-slate-500 disabled:border-white/5 disabled:cursor-not-allowed text-primary text-[10px] font-bold px-3 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer font-sans"
                           >
-                            📁 Médiathèque
+                            📁 Médiathèque Komentel
                           </button>
                         </div>
+                        
+                        <div className="relative group border border-dashed border-white/10 hover:border-primary/40 rounded-2xl p-6 bg-white/[0.02] hover:bg-white/[0.04] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex flex-col items-center justify-center gap-2 cursor-pointer">
+                          <input 
+                            type="file" 
+                            multiple 
+                            accept="image/*" 
+                            disabled={!user.accredited}
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              files.forEach(file => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  handleAddAdditionalImage(reader.result as string);
+                                };
+                                reader.readAsDataURL(file);
+                              });
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10 disabled:cursor-not-allowed" 
+                          />
+                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <PlusCircle size={20} />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs font-bold text-white">Importer des photos</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Glissez-déposez ou cliquez pour parcourir les fichiers</p>
+                          </div>
+                        </div>
 
-                        {additionalImagesStr && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {additionalImagesStr.split(",").map(u => u.trim()).filter(u => u !== "").map((url, idx) => (
+                        {additionalImages.length > 0 && (
+                          <div className="flex flex-wrap gap-2.5 mt-2.5 p-2.5 bg-black/20 rounded-xl border border-white/5">
+                            {additionalImages.map((url, idx) => (
                               <div key={idx} className="relative w-20 h-14 rounded-lg overflow-hidden border border-white/10 group animate-in fade-in duration-200">
                                 <img src={url} className="w-full h-full object-cover" alt={`Aperçu additionnel ${idx}`} />
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveAdditionalImage(url)}
-                                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 font-bold text-[10px] transition-opacity"
+                                  className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 hover:text-red-300 font-bold text-[10px] transition-opacity cursor-pointer"
                                 >
                                   Retirer
                                 </button>
@@ -523,7 +530,7 @@ export default function JournalistPage() {
                           {/* Local Uploads */}
                           {localMedia.map((url, idx) => {
                             const isCover = imageUrl === url;
-                            const isAdditional = additionalImagesStr.split(",").map(u => u.trim()).includes(url);
+                            const isAdditional = additionalImages.includes(url);
                             return (
                               <div 
                                 key={`upload-${idx}`}
@@ -572,7 +579,7 @@ export default function JournalistPage() {
                           {/* Default Gallery */}
                           {defaultMediaLibrary.map((img) => {
                             const isCover = imageUrl === img.url;
-                            const isAdditional = additionalImagesStr.split(",").map(u => u.trim()).includes(img.url);
+                            const isAdditional = additionalImages.includes(img.url);
                             return (
                               <div 
                                 key={img.id}

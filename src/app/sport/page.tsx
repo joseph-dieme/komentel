@@ -53,6 +53,70 @@ const flagEmojiToCountryCode = (emoji: string): string | null => {
   return null;
 };
 
+const renderClubOrWrestlerEmblem = (name: string, fallbackEmoji: string, textClass: string = "text-xl") => {
+  const normName = name.trim().toUpperCase();
+  
+  if (normName.includes("DUC")) {
+    return (
+      <div className="w-6 h-6 rounded-full bg-black border-2 border-yellow-500 flex items-center justify-center shadow-sm shrink-0 font-extrabold text-[9px] text-yellow-500 select-none animate-pulse" title="Dakar University Club">
+        D
+      </div>
+    );
+  }
+  if (normName.includes("DOUANES")) {
+    return (
+      <div className="w-6 h-6 rounded-full bg-emerald-900 border-2 border-emerald-400 flex items-center justify-center shadow-sm shrink-0 font-extrabold text-[9px] text-emerald-300 select-none" title="AS Douanes">
+        AD
+      </div>
+    );
+  }
+  if (normName.includes("MODOU")) {
+    return (
+      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-yellow-500 to-amber-600 border border-yellow-300 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Modou Lô (Roi des Arènes)">
+        👑
+      </div>
+    );
+  }
+  if (normName.includes("BALLA")) {
+    return (
+      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-orange-500 to-red-650 border border-orange-300 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Balla Gaye 2 (Lion de Guédiawaye)">
+        🦁
+      </div>
+    );
+  }
+  if (normName.includes("REUG")) {
+    return (
+      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 border border-blue-400 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Reug Reug (Génie de Thiaroye)">
+        ⚡
+      </div>
+    );
+  }
+  if (normName.includes("AMA")) {
+    return (
+      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-red-650 to-orange-600 border border-red-405 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Ama Baldé (Pikine)">
+        🔥
+      </div>
+    );
+  }
+  if (normName.includes("BOY NIANG")) {
+    return (
+      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-slate-200 to-slate-400 border border-white flex items-center justify-center shadow-md shrink-0 text-[10px] text-slate-800 select-none" title="Boy Niang 2">
+        🎯
+      </div>
+    );
+  }
+  if (normName.includes("LAC DE GUIERS")) {
+    return (
+      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-green-700 to-emerald-800 border border-green-450 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Lac de Guiers 2">
+        🐊
+      </div>
+    );
+  }
+
+  // Fallback to emoji
+  return <span className={`${textClass} filter drop-shadow-sm select-none shrink-0`}>{fallbackEmoji}</span>;
+};
+
 const renderTeamFlag = (name: string, flagEmoji: string) => {
   // 1. Try to convert flag emoji (regional indicators) to 2-letter country code
   const countryCode = flagEmojiToCountryCode(flagEmoji);
@@ -72,7 +136,7 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
 
   // 2. Handle known UK subnational flags
   const upperName = name.toUpperCase();
-  if (flagEmoji === '🏴\u200D󠁢󠁳󠁣󠁴󠁿' || upperName === 'SCO') {
+  if (flagEmoji === '🏴󠁧󠁢󠁳󠁣󠁴󠁿' || flagEmoji === '🏴\u200d󠁢󠁳󠁣󠁴󠁿' || upperName.includes('SCO') || upperName.includes('ÉCOSSE')) {
     return (
       <img 
         src="https://flagcdn.com/w40/gb-sct.png" 
@@ -81,7 +145,7 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
       />
     );
   }
-  if (flagEmoji === '🏴\u200D󠁢󠁥󠁮󠁧󠁿' || upperName === 'ENG') {
+  if (flagEmoji === '🏴󠁧󠁢󠁥󠁮󠁧󠁿' || flagEmoji === '🏴\u200d󠁢󠁥󠁮󠁧󠁿' || upperName.includes('ENG') || upperName.includes('ANGLETERRE')) {
     return (
       <img 
         src="https://flagcdn.com/w40/gb-eng.png" 
@@ -90,7 +154,7 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
       />
     );
   }
-  if (flagEmoji === '🏴\u200D󠁢󠁷󠁬󠁳󠁿' || upperName === 'WAL') {
+  if (flagEmoji === '🏴󠁧󠁢gw' || flagEmoji === '🏴\u200d󠁢󠁷󠁬󠁳󠁿' || upperName.includes('WAL') || upperName.includes('GALLES')) {
     return (
       <img 
         src="https://flagcdn.com/w40/gb-wls.png" 
@@ -100,8 +164,8 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
     );
   }
 
-  // 3. Fallback to the emoji directly (for local clubs/wrestlers/soccer ball)
-  return <span className="text-xl filter drop-shadow-sm select-none shrink-0">{flagEmoji}</span>;
+  // 3. Fallback to club/wrestler emblem or raw emoji
+  return renderClubOrWrestlerEmblem(name, flagEmoji, "text-xl");
 };
 
 export default function SportPage() {
@@ -119,7 +183,7 @@ export default function SportPage() {
     challengeToDuel
   } = useKomentel();
 
-  const [selectedSport, setSelectedSport] = useState<'ALL' | 'FOOTBALL'>('ALL');
+  const [selectedSport, setSelectedSport] = useState<'ALL' | 'FOOTBALL' | 'BASKETBALL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LIVE' | 'FINISHED' | 'UPCOMING'>('ALL');
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -190,18 +254,13 @@ export default function SportPage() {
     return detail
       .replace("Mi-temps", "Halftime")
       .replace("Terminé", "Final")
-      .replace("Final", "Final")
-      .replace("Juin", "June")
-      .replace("Juillet", "July")
-      .replace("Août", "August")
-      .replace("Toussa en cours", "Toussa dance in progress")
       .replace("Face à face", "Face-off")
       .replace("Combat au corps à corps", "Wrestling combat")
       .replace("Victoire", "Victory");
   };
 
-  // Consolidated matches list (filtered to Football only)
-  const combinedMatches = matches.filter(m => m.sport === 'FOOTBALL');
+  // Consolidated matches list (excluding Lutte)
+  const combinedMatches = matches.filter(m => m.sport !== 'LUTTE');
 
   // Filtering Logic
   const filteredMatches = combinedMatches.filter(m => {
@@ -250,7 +309,8 @@ export default function SportPage() {
 
   const sportsList = [
     { id: 'ALL', label: t("Tous les sports", "All Sports"), icon: "🏆" },
-    { id: 'FOOTBALL', label: t("Football", "Football"), icon: "⚽" }
+    { id: 'FOOTBALL', label: t("Football", "Football"), icon: "⚽" },
+    { id: 'BASKETBALL', label: t("Basketball", "Basketball"), icon: "🏀" }
   ];
 
   return (
@@ -622,17 +682,21 @@ export default function SportPage() {
 
               {/* Score banner inside drawer */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 my-4 flex items-center justify-between text-center">
-                <div className="w-1/3">
-                  <span className="text-2xl block mb-1">{activeDebateMatch.homeTeam.flag}</span>
-                  <span className="text-xs font-bold text-slate-200 block truncate">{activeDebateMatch.homeTeam.name}</span>
+                <div className="w-1/3 flex flex-col items-center">
+                  <div className="mb-1 h-8 flex items-center justify-center">
+                    {renderTeamFlag(activeDebateMatch.homeTeam.name, activeDebateMatch.homeTeam.flag)}
+                  </div>
+                  <span className="text-xs font-bold text-slate-200 block truncate w-full">{activeDebateMatch.homeTeam.name}</span>
                 </div>
                 <div className="w-1/3">
                   <span className="text-xl font-extrabold font-mono text-white block">{activeDebateMatch.score}</span>
                   <span className="text-[9px] font-bold text-primary uppercase tracking-wider block mt-1">{translateMatchDetail(activeDebateMatch.detail)}</span>
                 </div>
-                <div className="w-1/3">
-                  <span className="text-2xl block mb-1">{activeDebateMatch.awayTeam.flag}</span>
-                  <span className="text-xs font-bold text-slate-200 block truncate">{activeDebateMatch.awayTeam.name}</span>
+                <div className="w-1/3 flex flex-col items-center">
+                  <div className="mb-1 h-8 flex items-center justify-center">
+                    {renderTeamFlag(activeDebateMatch.awayTeam.name, activeDebateMatch.awayTeam.flag)}
+                  </div>
+                  <span className="text-xs font-bold text-slate-200 block truncate w-full">{activeDebateMatch.awayTeam.name}</span>
                 </div>
               </div>
 

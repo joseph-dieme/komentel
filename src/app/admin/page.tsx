@@ -59,7 +59,7 @@ export default function AdminPage() {
   const [paragraphs, setParagraphs] = useState<string[]>([""]);
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
-  const [additionalImagesStr, setAdditionalImagesStr] = useState("");
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [isPublished, setIsPublished] = useState(false);
 
   // Dynamic paragraphs handlers
@@ -85,14 +85,7 @@ export default function AdminPage() {
     e.preventDefault();
     if (!title.trim() || paragraphs.every(p => !p.trim())) return;
 
-    // Filter out empty paragraphs
     const filteredParagraphs = paragraphs.map(p => p.trim()).filter(p => p !== "");
-    
-    // Parse additional images comma-separated string
-    const additionalImages = additionalImagesStr
-      .split(",")
-      .map(url => url.trim())
-      .filter(url => url !== "");
 
     addArticle(
       title, 
@@ -111,7 +104,7 @@ export default function AdminPage() {
     setParagraphs([""]);
     setImageUrl("");
     setVideoUrl("");
-    setAdditionalImagesStr("");
+    setAdditionalImages([]);
     setIsPublished(true);
     setTimeout(() => setIsPublished(false), 5000);
   };
@@ -287,15 +280,53 @@ export default function AdminPage() {
                           />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Photos additionnelles (URLs séparées par des virgules)</label>
-                        <input 
-                          type="text" 
-                          placeholder="Ex: https://image1.jpg, https://image2.jpg..." 
-                          value={additionalImagesStr}
-                          onChange={e => setAdditionalImagesStr(e.target.value)}
-                          className="w-full border border-white/10 bg-white/5 text-white rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                        />
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">
+                          Photos additionnelles
+                        </label>
+                        
+                        <div className="relative group border border-dashed border-white/10 hover:border-primary/40 rounded-2xl p-6 bg-white/[0.02] hover:bg-white/[0.04] transition-all flex flex-col items-center justify-center gap-2 cursor-pointer">
+                          <input 
+                            type="file" 
+                            multiple 
+                            accept="image/*" 
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              files.forEach(file => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setAdditionalImages(prev => [...prev, reader.result as string]);
+                                };
+                                reader.readAsDataURL(file);
+                              });
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" 
+                          />
+                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <PlusCircle size={20} />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs font-bold text-white">Importer des photos</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Glissez-déposez ou cliquez pour parcourir les fichiers</p>
+                          </div>
+                        </div>
+
+                        {additionalImages.length > 0 && (
+                          <div className="flex flex-wrap gap-2.5 mt-2.5 p-2.5 bg-black/20 rounded-xl border border-white/5">
+                            {additionalImages.map((url, idx) => (
+                              <div key={idx} className="relative w-20 h-14 rounded-lg overflow-hidden border border-white/10 group animate-in fade-in duration-200">
+                                <img src={url} className="w-full h-full object-cover" alt={`Aperçu additionnel ${idx}`} />
+                                <button
+                                  type="button"
+                                  onClick={() => setAdditionalImages(prev => prev.filter(u => u !== url))}
+                                  className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 hover:text-red-300 font-bold text-[10px] transition-opacity cursor-pointer"
+                                >
+                                  Retirer
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

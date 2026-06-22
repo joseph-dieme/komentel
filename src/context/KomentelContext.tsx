@@ -113,6 +113,13 @@ export interface PollOption {
   label: string;
   labelEn?: string;
   votes: number;
+  nameFr?: string;
+  nameEn?: string;
+  flag?: string;
+  continentFr?: string;
+  continentEn?: string;
+  bestResultFr?: string;
+  bestResultEn?: string;
 }
 
 export interface Poll {
@@ -174,8 +181,10 @@ interface KomentelContextType {
   loginUser: (email: string, password?: string) => boolean;
   logoutUser: () => void;
   completeOnboarding: (details: { interests?: string[]; pressCard?: string; media?: string; bio?: string; photoUrl?: string }) => void;
-  accreditJournalist: (email: string) => void;
+  accreditJournalist: (email: string) => Promise<void>;
+  votedAt: number | null;
   votePoll: (optionIndex: number) => void;
+  changeVotePoll: (oldIndex: number, newIndex: number) => void;
   addComment: (articleId: string, content: string, parentId?: string | null, customAuthor?: string) => void;
   reportComment: (commentId: string) => void;
   likeComment: (commentId: string) => void;
@@ -480,6 +489,9 @@ const mapStoryToArticle = (story: any): Article => {
 export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 1. Initial Mock User
   const [user, setUser] = useState<User | null>(null);
+
+  // Poll Voted At Timestamp
+  const [votedAt, setVotedAt] = useState<number | null>(null);
 
   // Registered users list simulating local DB
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
@@ -851,13 +863,57 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // 5. Initial Poll
   const [poll, setPoll] = useState<Poll>({
-    question: "Qui remportera la Coupe du Monde de la FIFA cette année ?",
-    questionEn: "Who will win the FIFA World Cup this year?",
+    question: "Soutenez votre pays pour la Coupe du Monde 2026 !",
+    questionEn: "Support your country for the 2026 World Cup!",
     options: [
-      { label: "Sénégal (Lions de la Téranga) 🇸🇳", labelEn: "Senegal (Teranga Lions) 🇸🇳", votes: 1245 },
-      { label: "Argentine (Albiceleste) 🇦🇷", labelEn: "Argentina (Albiceleste) 🇦🇷", votes: 852 },
-      { label: "France (Les Bleus) 🇫🇷", labelEn: "France (Les Bleus) 🇫🇷", votes: 612 },
-      { label: "Brésil (Auriverde) 🇧🇷", labelEn: "Brazil (Auriverde) 🇧🇷", votes: 310 }
+      { nameFr: "Canada", nameEn: "Canada", flag: "🇨🇦", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Phase de groupes (1986, 2022)", bestResultEn: "Group stage (1986, 2022)", votes: 0, label: "Canada 🇨🇦", labelEn: "Canada 🇨🇦" },
+      { nameFr: "Mexique", nameEn: "Mexico", flag: "🇲🇽", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Quart de finale (1970, 1986)", bestResultEn: "Quarter-finals (1970, 1986)", votes: 0, label: "Mexique 🇲🇽", labelEn: "Mexico 🇲🇽" },
+      { nameFr: "États-Unis", nameEn: "United States", flag: "🇺🇸", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Demi-finale (1930)", bestResultEn: "Semi-finals (1930)", votes: 0, label: "États-Unis 🇺🇸", labelEn: "United States 🇺🇸" },
+      { nameFr: "Australie", nameEn: "Australia", flag: "🇦🇺", continentFr: "Asie-Pacifique", continentEn: "Asia-Pacific", bestResultFr: "Huitième de finale (2006, 2022)", bestResultEn: "Round of 16 (2006, 2022)", votes: 0, label: "Australie 🇦🇺", labelEn: "Australia 🇦🇺" },
+      { nameFr: "Irak", nameEn: "Iraq", flag: "🇮🇶", continentFr: "Moyen-Orient", continentEn: "Middle East", bestResultFr: "Phase de groupes (1986)", bestResultEn: "Group stage (1986)", votes: 0, label: "Irak 🇮🇶", labelEn: "Iraq 🇮🇶" },
+      { nameFr: "Iran", nameEn: "IR Iran", flag: "🇮🇷", continentFr: "Moyen-Orient", continentEn: "Middle East", bestResultFr: "Phase de groupes (6 fois)", bestResultEn: "Group stage (6 times)", votes: 0, label: "Iran 🇮🇷", labelEn: "IR Iran 🇮🇷" },
+      { nameFr: "Japon", nameEn: "Japan", flag: "🇯🇵", continentFr: "Asie-Pacifique", continentEn: "Asia-Pacific", bestResultFr: "Huitième de finale (4 fois)", bestResultEn: "Round of 16 (4 times)", votes: 0, label: "Japon 🇯🇵", labelEn: "Japan 🇯🇵" },
+      { nameFr: "Jordanie", nameEn: "Jordan", flag: "🇯🇴", continentFr: "Moyen-Orient", continentEn: "Middle East", bestResultFr: "Première participation", bestResultEn: "First appearance", votes: 0, label: "Jordanie 🇯🇴", labelEn: "Jordan 🇯🇴" },
+      { nameFr: "Corée du Sud", nameEn: "Korea Republic", flag: "🇰🇷", continentFr: "Asie-Pacifique", continentEn: "Asia-Pacific", bestResultFr: "Quatrième (2002)", bestResultEn: "Fourth place (2002)", votes: 0, label: "Corée du Sud 🇰🇷", labelEn: "Korea Republic 🇰🇷" },
+      { nameFr: "Qatar", nameEn: "Qatar", flag: "🇶🇦", continentFr: "Moyen-Orient", continentEn: "Middle East", bestResultFr: "Phase de groupes (2022)", bestResultEn: "Group stage (2022)", votes: 0, label: "Qatar 🇶🇦", labelEn: "Qatar 🇶🇦" },
+      { nameFr: "Arabie saoudite", nameEn: "Saudi Arabia", flag: "🇸🇦", continentFr: "Moyen-Orient", continentEn: "Middle East", bestResultFr: "Huitième de finale (1994)", bestResultEn: "Round of 16 (1994)", votes: 0, label: "Arabie saoudite 🇸🇦", labelEn: "Saudi Arabia 🇸🇦" },
+      { nameFr: "Ouzbékistan", nameEn: "Uzbekistan", flag: "🇺🇿", continentFr: "Asie-Pacifique", continentEn: "Asia-Pacific", bestResultFr: "Première participation", bestResultEn: "First appearance", votes: 0, label: "Ouzbékistan 🇺🇿", labelEn: "Uzbekistan 🇺🇿" },
+      { nameFr: "Algérie", nameEn: "Algeria", flag: "🇩🇿", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Huitième de finale (2014)", bestResultEn: "Round of 16 (2014)", votes: 0, label: "Algérie 🇩🇿", labelEn: "Algeria 🇩🇿" },
+      { nameFr: "Cap-Vert", nameEn: "Cabo Verde", flag: "🇨🇻", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Première participation", bestResultEn: "First appearance", votes: 0, label: "Cap-Vert 🇨🇻", labelEn: "Cabo Verde 🇨🇻" },
+      { nameFr: "RD Congo", nameEn: "DR Congo", flag: "🇨🇩", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Phase de groupes (1974)", bestResultEn: "Group stage (1974)", votes: 0, label: "RD Congo 🇨🇩", labelEn: "DR Congo 🇨🇩" },
+      { nameFr: "Côte d'Ivoire", nameEn: "Ivory Coast", flag: "🇨🇮", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Phase de groupes (3 fois)", bestResultEn: "Group stage (3 times)", votes: 0, label: "Côte d'Ivoire 🇨🇮", labelEn: "Ivory Coast 🇨🇮" },
+      { nameFr: "Égypte", nameEn: "Egypt", flag: "🇪🇬", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Phase de groupes (3 fois)", bestResultEn: "Group stage (3 times)", votes: 0, label: "Égypte 🇪🇬", labelEn: "Egypt 🇪🇬" },
+      { nameFr: "Ghana", nameEn: "Ghana", flag: "🇬🇭", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Quart de finale (2010)", bestResultEn: "Quarter-finals (2010)", votes: 0, label: "Ghana 🇬🇭", labelEn: "Ghana 🇬🇭" },
+      { nameFr: "Maroc", nameEn: "Morocco", flag: "🇲🇦", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Demi-finale (2022)", bestResultEn: "Semi-finals (2022)", votes: 0, label: "Maroc 🇲🇦", labelEn: "Morocco 🇲🇦" },
+      { nameFr: "Sénégal", nameEn: "Senegal", flag: "🇸🇳", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Quart de finale (2002)", bestResultEn: "Quarter-finals (2002)", votes: 0, label: "Sénégal (Lions de la Téranga) 🇸🇳", labelEn: "Senegal (Teranga Lions) 🇸🇳" },
+      { nameFr: "Afrique du Sud", nameEn: "South Africa", flag: "🇿🇦", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Phase de groupes (3 fois)", bestResultEn: "Group stage (3 times)", votes: 0, label: "Afrique du Sud 🇿🇦", labelEn: "South Africa 🇿🇦" },
+      { nameFr: "Tunisie", nameEn: "Tunisia", flag: "🇹🇳", continentFr: "Afrique", continentEn: "Africa", bestResultFr: "Phase de groupes (6 fois)", bestResultEn: "Group stage (6 times)", votes: 0, label: "Tunisie 🇹🇳", labelEn: "Tunisia 🇹🇳" },
+      { nameFr: "Curaçao", nameEn: "Curaçao", flag: "🇨🇼", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Première participation", bestResultEn: "First appearance", votes: 0, label: "Curaçao 🇨🇼", labelEn: "Curaçao 🇨🇼" },
+      { nameFr: "Haïti", nameEn: "Haiti", flag: "🇭🇹", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Phase de groupes (1974)", bestResultEn: "Group stage (1974)", votes: 0, label: "Haïti 🇭🇹", labelEn: "Haiti 🇭🇹" },
+      { nameFr: "Panama", nameEn: "Panama", flag: "🇵🇦", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Phase de groupes (2018)", bestResultEn: "Group stage (2018)", votes: 0, label: "Panama 🇵🇦", labelEn: "Panama 🇵🇦" },
+      { nameFr: "Argentine", nameEn: "Argentina", flag: "🇦🇷", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Vainqueur (1978, 1986, 2022)", bestResultEn: "Winner (1978, 1986, 2022)", votes: 0, label: "Argentine (Albiceleste) 🇦🇷", labelEn: "Argentina (Albiceleste) 🇦🇷" },
+      { nameFr: "Brésil", nameEn: "Brazil", flag: "🇧🇷", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Vainqueur (5 fois)", bestResultEn: "Winner (5 times)", votes: 0, label: "Brésil (Auriverde) 🇧🇷", labelEn: "Brazil (Auriverde) 🇧🇷" },
+      { nameFr: "Colombie", nameEn: "Colombia", flag: "🇨🇴", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Quart de finale (2014)", bestResultEn: "Quarter-finals (2014)", votes: 0, label: "Colombie 🇨🇴", labelEn: "Colombia 🇨🇴" },
+      { nameFr: "Équateur", nameEn: "Ecuador", flag: "🇪🇨", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Huitième de finale (2006)", bestResultEn: "Round of 16 (2006)", votes: 0, label: "Équateur 🇪🇨", labelEn: "Ecuador 🇪🇨" },
+      { nameFr: "Paraguay", nameEn: "Paraguay", flag: "🇵🇾", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Quart de finale (2010)", bestResultEn: "Quarter-finals (2010)", votes: 0, label: "Paraguay 🇵🇾", labelEn: "Paraguay 🇵🇾" },
+      { nameFr: "Uruguay", nameEn: "Uruguay", flag: "🇺🇾", continentFr: "Amériques", continentEn: "Americas", bestResultFr: "Vainqueur (1930, 1950)", bestResultEn: "Winner (1930, 1950)", votes: 0, label: "Uruguay 🇺🇾", labelEn: "Uruguay 🇺🇾" },
+      { nameFr: "Nouvelle-Zélande", nameEn: "New Zealand", flag: "🇳🇿", continentFr: "Asie-Pacifique", continentEn: "Asia-Pacific", bestResultFr: "Phase de groupes (1982, 2010)", bestResultEn: "Group stage (1982, 2010)", votes: 0, label: "Nouvelle-Zélande 🇳🇿", labelEn: "New Zealand 🇳🇿" },
+      { nameFr: "Autriche", nameEn: "Austria", flag: "🇦🇹", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Troisième (1954)", bestResultEn: "Third place (1954)", votes: 0, label: "Autriche 🇦🇹", labelEn: "Austria 🇦🇹" },
+      { nameFr: "Belgique", nameEn: "Belgium", flag: "🇧🇪", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Troisième (2018)", bestResultEn: "Third place (2018)", votes: 0, label: "Belgique 🇧🇪", labelEn: "Belgium 🇧🇪" },
+      { nameFr: "Bosnie-Herzégovine", nameEn: "Bosnia and Herzegovina", flag: "🇧🇦", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Phase de groupes (2014)", bestResultEn: "Group stage (2014)", votes: 0, label: "Bosnie-Herzégovine 🇧🇦", labelEn: "Bosnia and Herzegovina 🇧🇦" },
+      { nameFr: "Croatie", nameEn: "Croatia", flag: "🇭🇷", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Finaliste (2018)", bestResultEn: "Runner-up (2018)", votes: 0, label: "Croatie 🇭🇷", labelEn: "Croatia 🇭🇷" },
+      { nameFr: "Tchéquie", nameEn: "Czechia", flag: "🇨🇿", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Finaliste (1934, 1962 - Tchécoslovaquie)", bestResultEn: "Runner-up (1934, 1962 - Czechoslovakia)", votes: 0, label: "Tchéquie 🇨🇿", labelEn: "Czechia 🇨🇿" },
+      { nameFr: "Angleterre", nameEn: "England", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Vainqueur (1966)", bestResultEn: "Winner (1966)", votes: 0, label: "Angleterre 🏴󠁧󠁢󠁥󠁮󠁧󠁿", labelEn: "England 🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+      { nameFr: "France", nameEn: "France", flag: "🇫🇷", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Vainqueur (1998, 2018)", bestResultEn: "Winner (1998, 2018)", votes: 0, label: "France (Les Bleus) 🇫🇷", labelEn: "France (Les Bleus) 🇫🇷" },
+      { nameFr: "Allemagne", nameEn: "Germany", flag: "🇩🇪", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Vainqueur (4 fois)", bestResultEn: "Winner (4 times)", votes: 0, label: "Allemagne 🇩🇪", labelEn: "Germany 🇩🇪" },
+      { nameFr: "Pays-Bas", nameEn: "Netherlands", flag: "🇳🇱", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Finaliste (3 fois)", bestResultEn: "Runner-up (3 times)", votes: 0, label: "Pays-Bas 🇳🇱", labelEn: "Netherlands 🇳🇱" },
+      { nameFr: "Norvège", nameEn: "Norway", flag: "🇳🇴", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Huitième de finale (1998)", bestResultEn: "Round of 16 (1998)", votes: 0, label: "Norvège 🇳🇴", labelEn: "Norway 🇳🇴" },
+      { nameFr: "Portugal", nameEn: "Portugal", flag: "🇵🇹", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Troisième (1966)", bestResultEn: "Third place (1966)", votes: 0, label: "Portugal 🇵🇹", labelEn: "Portugal 🇵🇹" },
+      { nameFr: "Écosse", nameEn: "Scotland", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Phase de groupes (8 fois)", bestResultEn: "Group stage (8 times)", votes: 0, label: "Écosse 🏴󠁧󠁢󠁳󠁣󠁴󠁿", labelEn: "Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+      { nameFr: "Espagne", nameEn: "Spain", flag: "🇪🇸", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Vainqueur (2010)", bestResultEn: "Winner (2010)", votes: 0, label: "Espagne 🇪🇸", labelEn: "Spain 🇪🇸" },
+      { nameFr: "Suède", nameEn: "Sweden", flag: "🇸🇪", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Finaliste (1958)", bestResultEn: "Runner-up (1958)", votes: 0, label: "Suède 🇸🇪", labelEn: "Sweden 🇸🇪" },
+      { nameFr: "Suisse", nameEn: "Switzerland", flag: "🇨🇭", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Quart de finale (3 fois)", bestResultEn: "Quarter-finals (3 times)", votes: 0, label: "Suisse 🇨🇭", labelEn: "Switzerland 🇨🇭" },
+      { nameFr: "Turquie", nameEn: "Türkiye", flag: "🇹🇷", continentFr: "Europe", continentEn: "Europe", bestResultFr: "Troisième (2002)", bestResultEn: "Third place (2002)", votes: 0, label: "Turquie 🇹🇷", labelEn: "Türkiye 🇹🇷" }
     ],
     votedOptionIndex: null
   });
@@ -1039,6 +1095,10 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               if (savedVal !== null) {
                 savedVote = parseInt(savedVal);
               }
+              const savedTime = localStorage.getItem("votedAt");
+              if (savedTime !== null) {
+                setVotedAt(parseInt(savedTime));
+              }
             }
             return {
               question: pollData.question,
@@ -1059,24 +1119,80 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Actions
   const votePoll = async (optionIndex: number) => {
     let updatedOptions: PollOption[] | undefined;
+    const now = Date.now();
 
     setPoll(prev => {
       if (prev.votedOptionIndex !== null) return prev; // Cannot vote twice
       const updated = [...prev.options];
       updated[optionIndex] = {
         ...updated[optionIndex],
-        votes: updated[optionIndex].votes + 1
+        votes: (updated[optionIndex].votes || 0) + 1
       };
       
       if (typeof window !== "undefined") {
         localStorage.setItem("votedOptionIndex", String(optionIndex));
+        localStorage.setItem("votedAt", String(now));
       }
+      setVotedAt(now);
 
       updatedOptions = updated;
       return {
         ...prev,
         options: updated,
         votedOptionIndex: optionIndex
+      };
+    });
+
+    if (updatedOptions) {
+      try {
+        await supabase
+          .from("polls")
+          .update({ options: JSON.stringify(updatedOptions) })
+          .eq("id", "world-cup-poll");
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const changeVotePoll = async (oldIndex: number, newIndex: number) => {
+    let updatedOptions: PollOption[] | undefined;
+    const now = Date.now();
+
+    setPoll(prev => {
+      if (votedAt !== null && now - votedAt > 24 * 60 * 60 * 1000) {
+        return prev; // Change window expired
+      }
+
+      const updated = [...prev.options];
+      
+      // Decrement old
+      if (oldIndex >= 0 && oldIndex < updated.length) {
+        updated[oldIndex] = {
+          ...updated[oldIndex],
+          votes: Math.max(0, (updated[oldIndex].votes || 0) - 1)
+        };
+      }
+
+      // Increment new
+      if (newIndex >= 0 && newIndex < updated.length) {
+        updated[newIndex] = {
+          ...updated[newIndex],
+          votes: (updated[newIndex].votes || 0) + 1
+        };
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("votedOptionIndex", String(newIndex));
+        localStorage.setItem("votedAt", String(now));
+      }
+      setVotedAt(now);
+
+      updatedOptions = updated;
+      return {
+        ...prev,
+        options: updated,
+        votedOptionIndex: newIndex
       };
     });
 
@@ -1782,9 +1898,10 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Poll Vote
       const savedPollQuestion = localStorage.getItem("pollQuestion");
-      const currentQuestion = "Qui remportera la Coupe du Monde de la FIFA cette année ?";
+      const currentQuestion = "Soutenez votre pays pour la Coupe du Monde 2026 !";
       if (savedPollQuestion !== currentQuestion) {
         localStorage.removeItem("votedOptionIndex");
+        localStorage.removeItem("votedAt");
         localStorage.removeItem("pollOptionsVotes");
         localStorage.setItem("pollQuestion", currentQuestion);
       }
@@ -1795,6 +1912,11 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ...prev,
           votedOptionIndex: parseInt(savedPollVote)
         }));
+      }
+
+      const savedVotedAt = localStorage.getItem("votedAt");
+      if (savedVotedAt) {
+        setVotedAt(parseInt(savedVotedAt));
       }
     }
   }, []);
@@ -2416,6 +2538,8 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       completeOnboarding,
       accreditJournalist,
       votePoll,
+      changeVotePoll,
+      votedAt,
       addComment,
       reportComment,
       likeComment,

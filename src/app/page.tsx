@@ -143,6 +143,70 @@ const flagEmojiToCountryCode = (emoji: string): string | null => {
   return null;
 };
 
+const renderClubOrWrestlerEmblem = (name: string, fallbackEmoji: string, textClass: string = "text-sm") => {
+  const normName = name.trim().toUpperCase();
+  
+  if (normName.includes("DUC")) {
+    return (
+      <div className="w-5.5 h-5.5 rounded-full bg-black border-2 border-yellow-500 flex items-center justify-center shadow-sm shrink-0 font-extrabold text-[9px] text-yellow-500 select-none animate-pulse" title="Dakar University Club">
+        D
+      </div>
+    );
+  }
+  if (normName.includes("DOUANES")) {
+    return (
+      <div className="w-5.5 h-5.5 rounded-full bg-emerald-900 border-2 border-emerald-400 flex items-center justify-center shadow-sm shrink-0 font-extrabold text-[9px] text-emerald-300 select-none" title="AS Douanes">
+        AD
+      </div>
+    );
+  }
+  if (normName.includes("MODOU")) {
+    return (
+      <div className="w-5.5 h-5.5 rounded-lg bg-gradient-to-br from-yellow-500 to-amber-600 border border-yellow-300 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Modou Lô (Roi des Arènes)">
+        👑
+      </div>
+    );
+  }
+  if (normName.includes("BALLA")) {
+    return (
+      <div className="w-5.5 h-5.5 rounded-lg bg-gradient-to-br from-orange-500 to-red-650 border border-orange-300 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Balla Gaye 2 (Lion de Guédiawaye)">
+        🦁
+      </div>
+    );
+  }
+  if (normName.includes("REUG")) {
+    return (
+      <div className="w-5.5 h-5.5 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 border border-blue-400 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Reug Reug (Génie de Thiaroye)">
+        ⚡
+      </div>
+    );
+  }
+  if (normName.includes("AMA")) {
+    return (
+      <div className="w-5.5 h-5.5 rounded-lg bg-gradient-to-br from-red-650 to-orange-600 border border-red-405 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Ama Baldé (Pikine)">
+        🔥
+      </div>
+    );
+  }
+  if (normName.includes("BOY NIANG")) {
+    return (
+      <div className="w-5.5 h-5.5 rounded-lg bg-gradient-to-br from-slate-200 to-slate-400 border border-white flex items-center justify-center shadow-md shrink-0 text-[10px] text-slate-800 select-none" title="Boy Niang 2">
+        🎯
+      </div>
+    );
+  }
+  if (normName.includes("LAC DE GUIERS")) {
+    return (
+      <div className="w-5.5 h-5.5 rounded-lg bg-gradient-to-br from-green-700 to-emerald-800 border border-green-450 flex items-center justify-center shadow-md shrink-0 text-xs text-white select-none" title="Lac de Guiers 2">
+        🐊
+      </div>
+    );
+  }
+
+  // Fallback to emoji
+  return <span className={`${textClass} filter drop-shadow-sm select-none shrink-0`}>{fallbackEmoji}</span>;
+};
+
 const renderTeamFlag = (name: string, flagEmoji: string) => {
   // 1. Try to convert flag emoji (regional indicators) to 2-letter country code
   const countryCode = flagEmojiToCountryCode(flagEmoji);
@@ -162,7 +226,7 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
 
   // 2. Handle known UK subnational flags
   const upperName = name.toUpperCase();
-  if (flagEmoji === '🏴\u200D󠁢󠁳󠁣󠁴󠁿' || upperName === 'SCO') {
+  if (flagEmoji === '🏴󠁧󠁢󠁳󠁣󠁴󠁿' || flagEmoji === '🏴\u200d󠁢󠁳󠁣󠁴󠁿' || upperName.includes('SCO') || upperName.includes('ÉCOSSE')) {
     return (
       <img 
         src="https://flagcdn.com/w40/gb-sct.png" 
@@ -171,7 +235,7 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
       />
     );
   }
-  if (flagEmoji === '🏴\u200D󠁢󠁥󠁮󠁧󠁿' || upperName === 'ENG') {
+  if (flagEmoji === '🏴󠁧󠁢󠁥󠁮󠁧󠁿' || flagEmoji === '🏴\u200d󠁢󠁥󠁮󠁧󠁿' || upperName.includes('ENG') || upperName.includes('ANGLETERRE')) {
     return (
       <img 
         src="https://flagcdn.com/w40/gb-eng.png" 
@@ -180,7 +244,7 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
       />
     );
   }
-  if (flagEmoji === '🏴\u200D󠁢󠁷󠁬󠁳󠁿' || upperName === 'WAL') {
+  if (flagEmoji === '🏴󠁧󠁢󠁷󠁬󠁳󠁿' || flagEmoji === '🏴\u200d󠁢󠁷󠁬󠁳󠁿' || upperName.includes('WAL') || upperName.includes('GALLES')) {
     return (
       <img 
         src="https://flagcdn.com/w40/gb-wls.png" 
@@ -190,40 +254,11 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
     );
   }
 
-  // 3. Fallback to the emoji directly (for local clubs/wrestlers/soccer ball)
-  return <span className="text-sm filter drop-shadow-sm select-none shrink-0">{flagEmoji}</span>;
+  // 3. Fallback to club/wrestler emblem or raw emoji
+  return renderClubOrWrestlerEmblem(name, flagEmoji, "text-sm");
 };
 
-interface CountryParticipation {
-  nameFr: string;
-  nameEn: string;
-  flag: string;
-  status: "QUALIFIED" | "NOT_QUALIFIED";
-  group: string;
-  bestResultFr: string;
-  bestResultEn: string;
-  supportPct: number;
-}
 
-const worldCupCountries: CountryParticipation[] = [
-  { nameFr: "Sénégal", nameEn: "Senegal", flag: "🇸🇳", status: "QUALIFIED", group: "Groupe A", bestResultFr: "Quart de finale (2002)", bestResultEn: "Quarter-finals (2002)", supportPct: 88 },
-  { nameFr: "Maroc", nameEn: "Morocco", flag: "🇲🇦", status: "QUALIFIED", group: "Groupe B", bestResultFr: "Demi-finale (2022)", bestResultEn: "Semi-finals (2022)", supportPct: 82 },
-  { nameFr: "France", nameEn: "France", flag: "🇫🇷", status: "QUALIFIED", group: "Groupe C", bestResultFr: "Vainqueur (1998, 2018)", bestResultEn: "Winner (1998, 2018)", supportPct: 75 },
-  { nameFr: "Argentine", nameEn: "Argentina", flag: "🇦🇷", status: "QUALIFIED", group: "Groupe F", bestResultFr: "Vainqueur (1978, 1986, 2022)", bestResultEn: "Winner (1978, 1986, 2022)", supportPct: 84 },
-  { nameFr: "Brésil", nameEn: "Brazil", flag: "🇧🇷", status: "QUALIFIED", group: "Groupe E", bestResultFr: "Vainqueur (5 fois)", bestResultEn: "Winner (5 times)", supportPct: 80 },
-  { nameFr: "Espagne", nameEn: "Spain", flag: "🇪🇸", status: "QUALIFIED", group: "Groupe D", bestResultFr: "Vainqueur (2010)", bestResultEn: "Winner (2010)", supportPct: 70 },
-  { nameFr: "Portugal", nameEn: "Portugal", flag: "🇵🇹", status: "QUALIFIED", group: "Groupe H", bestResultFr: "Troisième (1966)", bestResultEn: "Third place (1966)", supportPct: 74 },
-  { nameFr: "Italie", nameEn: "Italy", flag: "🇮🇹", status: "QUALIFIED", group: "Groupe E", bestResultFr: "Vainqueur (4 fois)", bestResultEn: "Winner (4 times)", supportPct: 65 },
-  { nameFr: "Allemagne", nameEn: "Germany", flag: "🇩🇪", status: "QUALIFIED", group: "Groupe D", bestResultFr: "Vainqueur (4 fois)", bestResultEn: "Winner (4 times)", supportPct: 62 },
-  { nameFr: "Cameroun", nameEn: "Cameroon", flag: "🇨🇲", status: "QUALIFIED", group: "Groupe F", bestResultFr: "Quart de finale (1990)", bestResultEn: "Quarter-finals (1990)", supportPct: 79 },
-  { nameFr: "États-Unis", nameEn: "United States", flag: "🇺🇸", status: "QUALIFIED", group: "Groupe A", bestResultFr: "Demi-finale (1930)", bestResultEn: "Semi-finals (1930)", supportPct: 55 },
-  { nameFr: "Mexique", nameEn: "Mexico", flag: "🇲🇽", status: "QUALIFIED", group: "Groupe A", bestResultFr: "Quart de finale (1970, 1986)", bestResultEn: "Quarter-finals (1970, 1986)", supportPct: 60 },
-  { nameFr: "Canada", nameEn: "Canada", flag: "🇨🇦", status: "QUALIFIED", group: "Groupe B", bestResultFr: "Phase de groupes (1986, 2022)", bestResultEn: "Group stage (1986, 2022)", supportPct: 48 },
-  { nameFr: "Algérie", nameEn: "Algeria", flag: "🇩🇿", status: "NOT_QUALIFIED", group: "", bestResultFr: "Huitième de finale (2014)", bestResultEn: "Round of 16 (2014)", supportPct: 0 },
-  { nameFr: "Côte d'Ivoire", nameEn: "Ivory Coast", flag: "🇨🇮", status: "QUALIFIED", group: "Groupe G", bestResultFr: "Phase de groupes (3 fois)", bestResultEn: "Group stage (3 times)", supportPct: 76 },
-  { nameFr: "Japon", nameEn: "Japan", flag: "🇯🇵", status: "QUALIFIED", group: "Groupe C", bestResultFr: "Huitième de finale (4 fois)", bestResultEn: "Round of 16 (4 times)", supportPct: 68 },
-  { nameFr: "Égypte", nameEn: "Egypt", flag: "🇪🇬", status: "NOT_QUALIFIED", group: "", bestResultFr: "Phase de groupes (1934, 1990, 2018)", bestResultEn: "Group stage (1934, 1990, 2018)", supportPct: 0 }
-];
 
 function HomeContent() {
   const { 
@@ -253,7 +288,9 @@ function HomeContent() {
     resetSimulatedMatches,
     refreshArticles,
     user,
-    registeredUsers
+    registeredUsers,
+    votedAt,
+    changeVotePoll
   } = useKomentel();
   
   const searchParams = useSearchParams();
@@ -301,37 +338,8 @@ function HomeContent() {
 
   const [activeOpinionTab, setActiveOpinionTab] = useState<'POLL' | 'SEARCH'>('POLL');
   const [searchCountryQuery, setSearchCountryQuery] = useState("");
-  const [votedCountries, setVotedCountries] = useState<{[key: string]: boolean}>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("komentel_voted_countries");
-      return saved ? JSON.parse(saved) : {};
-    }
-    return {};
-  });
-  const [localCountryVotes, setLocalCountryVotes] = useState<{[key: string]: number}>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("komentel_local_country_votes");
-      return saved ? JSON.parse(saved) : {};
-    }
-    return {};
-  });
+  const [isChangingVote, setIsChangingVote] = useState(false);
 
-  const handleSupportCountry = (countryName: string) => {
-    if (votedCountries[countryName]) return;
-    
-    const newVotes = { ...localCountryVotes, [countryName]: (localCountryVotes[countryName] || 0) + 1 };
-    setLocalCountryVotes(newVotes);
-    
-    const newVoted = { ...votedCountries, [countryName]: true };
-    setVotedCountries(newVoted);
-
-    if (typeof window !== "undefined") {
-      localStorage.setItem("komentel_local_country_votes", JSON.stringify(newVotes));
-      localStorage.setItem("komentel_voted_countries", JSON.stringify(newVoted));
-    }
-
-    showToast(language === "FR" ? `Opinion enregistrée pour ${countryName} !` : `Opinion registered for ${countryName}!`);
-  };
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -540,9 +548,39 @@ function HomeContent() {
     .sort((a, b) => b.views - a.views);
 
   const renderPollCard = (isSidebar: boolean = false) => {
-    const filteredCountries = worldCupCountries.filter(c => {
+    const canChangeVote = poll.votedOptionIndex !== null && votedAt !== null && (Date.now() - votedAt < 24 * 60 * 60 * 1000);
+
+    const getRemainingTimeText = () => {
+      if (votedAt === null) return "";
+      const diff = Date.now() - votedAt;
+      const total24h = 24 * 60 * 60 * 1000;
+      const remaining = total24h - diff;
+      if (remaining <= 0) return "";
+      
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      if (hours > 0) {
+        return language === 'FR' ? `${hours}h rest.` : `${hours}h left`;
+      } else {
+        return language === 'FR' ? `${minutes}m rest.` : `${minutes}m left`;
+      }
+    };
+
+    const topPollOptions = [...poll.options]
+      .map((opt, idx) => ({ ...opt, originalIndex: idx }))
+      .sort((a, b) => b.votes - a.votes)
+      .slice(0, 4);
+
+    const optionsWithIndices = poll.options.map((opt, idx) => ({
+      ...opt,
+      originalIndex: idx
+    }));
+
+    const filteredCountries = optionsWithIndices.filter(c => {
       const q = searchCountryQuery.toLowerCase().trim();
-      return c.nameFr.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q);
+      const nameFr = c.nameFr || c.label || "";
+      const nameEn = c.nameEn || c.labelEn || "";
+      return nameFr.toLowerCase().includes(q) || nameEn.toLowerCase().includes(q);
     });
 
     return (
@@ -595,18 +633,18 @@ function HomeContent() {
                   {language === 'FR' ? poll.question : (poll.questionEn || poll.question)}
                 </h3>
                 
-                {poll.votedOptionIndex === null ? (
+                {poll.votedOptionIndex === null || isChangingVote ? (
                   <div className="space-y-1.5 mb-2">
-                    {poll.options.map((opt, idx) => (
+                    {topPollOptions.map((opt) => (
                       <button
-                        key={idx}
+                        key={opt.originalIndex}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setActivePollVote(idx);
+                          setActivePollVote(opt.originalIndex);
                         }}
                         className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold border transition-all duration-200 cursor-pointer ${
-                          activePollVote === idx
+                          activePollVote === opt.originalIndex
                             ? "bg-white text-slate-900 border-white shadow-md scale-[1.01]"
                             : "bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-primary/30 text-slate-205 hover:scale-[1.01]"
                         }`}
@@ -614,25 +652,56 @@ function HomeContent() {
                         {language === 'FR' ? opt.label : (opt.labelEn || opt.label)}
                       </button>
                     ))}
-                    <button
-                      disabled={activePollVote === null}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleVote();
-                      }}
-                      className="w-full font-bold text-xs py-2 rounded-lg mt-2 shadow transition-all hover:scale-[1.01] uppercase tracking-wider cursor-pointer disabled:cursor-not-allowed border bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent-hover text-white border-transparent disabled:opacity-40 disabled:bg-none disabled:border-white/5 disabled:text-slate-500"
-                    >
-                      {t("Valider mon vote", "Submit Vote")}
-                    </button>
+                    {isChangingVote ? (
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          disabled={activePollVote === null || activePollVote === poll.votedOptionIndex}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (activePollVote !== null && poll.votedOptionIndex !== null) {
+                              changeVotePoll(poll.votedOptionIndex, activePollVote);
+                              setIsChangingVote(false);
+                              showToast(language === 'FR' ? "Vote modifié avec succès !" : "Vote changed successfully!");
+                            }
+                          }}
+                          className="flex-1 font-bold text-[10px] py-2 rounded-lg shadow transition-all hover:scale-[1.01] uppercase tracking-wider cursor-pointer disabled:cursor-not-allowed border bg-gradient-to-r from-green-500 to-emerald-600 text-white border-transparent disabled:opacity-40 disabled:bg-none disabled:border-white/5 disabled:text-slate-500"
+                        >
+                          {t("Confirmer", "Confirm")}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsChangingVote(false);
+                            setActivePollVote(null);
+                          }}
+                          className="flex-1 font-bold text-[10px] py-2 rounded-lg shadow transition-all hover:scale-[1.01] uppercase tracking-wider cursor-pointer border bg-white/5 border-white/10 text-slate-350 hover:bg-white/10 hover:text-white"
+                        >
+                          {t("Annuler", "Cancel")}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        disabled={activePollVote === null}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleVote();
+                        }}
+                        className="w-full font-bold text-xs py-2 rounded-lg mt-2 shadow transition-all hover:scale-[1.01] uppercase tracking-wider cursor-pointer disabled:cursor-not-allowed border bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent-hover text-white border-transparent disabled:opacity-40 disabled:bg-none disabled:border-white/5 disabled:text-slate-500"
+                      >
+                        {t("Valider mon vote", "Submit Vote")}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2.5 mb-2">
-                    {poll.options.map((opt, idx) => {
+                    {topPollOptions.map((opt) => {
                       const pct = totalPollVotes > 0 ? Math.round((opt.votes / totalPollVotes) * 100) : 0;
-                      const isVoted = poll.votedOptionIndex === idx;
+                      const isVoted = poll.votedOptionIndex === opt.originalIndex;
                       return (
-                        <div key={idx} className="space-y-1">
+                        <div key={opt.originalIndex} className="space-y-1">
                           <div className="flex justify-between text-xs font-bold">
                             <span className={isVoted ? "text-accent font-extrabold" : "text-slate-200"}>
                               {language === 'FR' ? opt.label : (opt.labelEn || opt.label)} {isVoted && "✔️"}
@@ -652,9 +721,28 @@ function HomeContent() {
                         </div>
                       );
                     })}
-                    <p className="text-[8px] text-white/45 text-center font-bold uppercase mt-2">
-                      Total: {totalPollVotes.toLocaleString()} {t("votes", "votes")}
-                    </p>
+                    <div className="flex items-center justify-between mt-2.5">
+                      <p className="text-[8px] text-white/45 font-bold uppercase">
+                        Total: {totalPollVotes.toLocaleString()} {t("votes", "votes")}
+                      </p>
+                      {canChangeVote ? (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsChangingVote(true);
+                            setActivePollVote(poll.votedOptionIndex);
+                          }}
+                          className="text-[9px] font-bold text-accent hover:text-accent-hover uppercase tracking-wider flex items-center gap-1 cursor-pointer border border-accent/20 hover:border-accent/40 bg-accent/5 px-2 py-0.5 rounded transition-all"
+                        >
+                          ✏️ {t("Changer vote", "Change vote")} ({getRemainingTimeText()})
+                        </button>
+                      ) : (
+                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">
+                          🔒 {t("Vote finalisé", "Vote locked")}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -698,60 +786,73 @@ function HomeContent() {
                     </div>
                   ) : (
                     filteredCountries.map(c => {
-                      const votesCount = localCountryVotes[c.nameFr] || 0;
-                      const totalScore = Math.min(100, c.supportPct + votesCount);
-                      const hasVoted = votedCountries[c.nameFr];
+                      const votesCount = c.votes || 0;
+                      const hasVotedAny = poll.votedOptionIndex !== null;
+                      const userVotedForThis = poll.votedOptionIndex === c.originalIndex;
+                      const isButtonDisabled = userVotedForThis || (hasVotedAny && !canChangeVote);
+
+                      const name = language === 'FR' ? c.nameFr : c.nameEn;
+                      const continent = language === 'FR' ? c.continentFr : c.continentEn;
+                      const bestResult = language === 'FR' ? c.bestResultFr : c.bestResultEn;
 
                       return (
                         <div key={c.nameFr} className="bg-white/[0.02] border border-white/5 rounded-lg p-2 flex items-center justify-between transition-colors hover:bg-white/[0.04]">
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-lg shrink-0">{c.flag}</span>
+                            {renderTeamFlag(name || "", c.flag || "")}
                             <div className="min-w-0">
                               <div className="flex items-center gap-1">
-                                <span className="text-[11px] font-bold text-white truncate">{language === 'FR' ? c.nameFr : c.nameEn}</span>
-                                {c.status === "QUALIFIED" ? (
-                                  <span className="text-[8px] bg-green-500/15 border border-green-500/30 text-green-400 px-1 rounded font-bold uppercase shrink-0">
-                                    {c.group}
-                                  </span>
-                                ) : (
-                                  <span className="text-[8px] bg-red-500/15 border border-red-500/30 text-red-400 px-1 rounded font-bold uppercase shrink-0">
-                                    {t("Non qualifié", "Not Qualified")}
-                                  </span>
-                                )}
+                                <span className="text-[11px] font-bold text-white truncate">{name}</span>
+                                <span className="text-[8px] bg-green-500/15 border border-green-500/30 text-green-400 px-1.5 py-0.2 rounded font-extrabold uppercase shrink-0">
+                                  {continent}
+                                </span>
                               </div>
-                              {c.status === "QUALIFIED" && (
-                                <p className="text-[8px] text-slate-400 truncate">
-                                  {t("Meilleur : ", "Best: ")}
-                                  {language === 'FR' ? c.bestResultFr : c.bestResultEn}
-                                </p>
-                              )}
+                              <p className="text-[8px] text-slate-450 truncate">
+                                {t("Meilleur : ", "Best: ")}{bestResult}
+                              </p>
                             </div>
                           </div>
 
-                          {c.status === "QUALIFIED" && (
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <div className="text-right">
-                                <span className="text-[10px] font-extrabold text-accent">{totalScore}%</span>
-                                <span className="text-[7px] block text-slate-500 uppercase tracking-wider">{t("Soutien", "Support")}</span>
-                              </div>
-                              <button
-                                disabled={hasVoted}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleSupportCountry(c.nameFr);
-                                }}
-                                className={`w-6 h-6 rounded border flex items-center justify-center transition-all ${
-                                  hasVoted
-                                    ? "bg-accent border-accent text-white opacity-80"
-                                    : "bg-white/5 border-white/10 text-slate-350 hover:bg-accent/20 hover:border-accent/40 hover:text-white cursor-pointer"
-                                }`}
-                                title={t("Soutenir ce pays", "Support this country")}
-                              >
-                                <ThumbsUp size={9} className={hasVoted ? "fill-white" : ""} />
-                              </button>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="text-right">
+                              <span className="text-[10px] font-extrabold text-accent">{votesCount.toLocaleString()}</span>
+                              <span className="text-[7px] block text-slate-500 uppercase tracking-wider">{t("Soutiens", "Supports")}</span>
                             </div>
-                          )}
+                            <button
+                              disabled={isButtonDisabled}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (hasVotedAny) {
+                                  if (canChangeVote && poll.votedOptionIndex !== null) {
+                                    const confirmMsg = language === "FR" 
+                                      ? `Voulez-vous changer votre vote pour soutenir ${name} ?` 
+                                      : `Do you want to change your vote to support ${name}?`;
+                                    if (window.confirm(confirmMsg)) {
+                                      changeVotePoll(poll.votedOptionIndex, c.originalIndex);
+                                      showToast(language === "FR" ? `Vote changé pour ${name} !` : `Vote changed to ${name}!`);
+                                    }
+                                  }
+                                } else {
+                                  votePoll(c.originalIndex);
+                                  showToast(language === "FR" ? `Opinion enregistrée pour ${name} !` : `Opinion registered for ${name}!`);
+                                }
+                              }}
+                              className={`w-6 h-6 rounded border flex items-center justify-center transition-all ${
+                                userVotedForThis
+                                  ? "bg-accent border-accent text-white opacity-90 shadow-[0_0_8px_rgba(244,63,94,0.3)]"
+                                  : isButtonDisabled
+                                  ? "bg-white/[0.02] border-white/5 text-slate-600 cursor-not-allowed opacity-50"
+                                  : "bg-white/5 border-white/10 text-slate-350 hover:bg-accent/20 hover:border-accent/40 hover:text-white cursor-pointer"
+                              }`}
+                              title={userVotedForThis ? t("Vous soutenez ce pays", "You support this country") : t("Soutenir ce pays", "Support this country")}
+                            >
+                              {userVotedForThis ? (
+                                <CheckCircle2 size={10} className="text-white" />
+                              ) : (
+                                <ThumbsUp size={9} />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       );
                     })
