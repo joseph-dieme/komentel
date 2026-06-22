@@ -194,6 +194,37 @@ const renderTeamFlag = (name: string, flagEmoji: string) => {
   return <span className="text-sm filter drop-shadow-sm select-none shrink-0">{flagEmoji}</span>;
 };
 
+interface CountryParticipation {
+  nameFr: string;
+  nameEn: string;
+  flag: string;
+  status: "QUALIFIED" | "NOT_QUALIFIED";
+  group: string;
+  bestResultFr: string;
+  bestResultEn: string;
+  supportPct: number;
+}
+
+const worldCupCountries: CountryParticipation[] = [
+  { nameFr: "Sénégal", nameEn: "Senegal", flag: "🇸🇳", status: "QUALIFIED", group: "Groupe A", bestResultFr: "Quart de finale (2002)", bestResultEn: "Quarter-finals (2002)", supportPct: 88 },
+  { nameFr: "Maroc", nameEn: "Morocco", flag: "🇲🇦", status: "QUALIFIED", group: "Groupe B", bestResultFr: "Demi-finale (2022)", bestResultEn: "Semi-finals (2022)", supportPct: 82 },
+  { nameFr: "France", nameEn: "France", flag: "🇫🇷", status: "QUALIFIED", group: "Groupe C", bestResultFr: "Vainqueur (1998, 2018)", bestResultEn: "Winner (1998, 2018)", supportPct: 75 },
+  { nameFr: "Argentine", nameEn: "Argentina", flag: "🇦🇷", status: "QUALIFIED", group: "Groupe F", bestResultFr: "Vainqueur (1978, 1986, 2022)", bestResultEn: "Winner (1978, 1986, 2022)", supportPct: 84 },
+  { nameFr: "Brésil", nameEn: "Brazil", flag: "🇧🇷", status: "QUALIFIED", group: "Groupe E", bestResultFr: "Vainqueur (5 fois)", bestResultEn: "Winner (5 times)", supportPct: 80 },
+  { nameFr: "Espagne", nameEn: "Spain", flag: "🇪🇸", status: "QUALIFIED", group: "Groupe D", bestResultFr: "Vainqueur (2010)", bestResultEn: "Winner (2010)", supportPct: 70 },
+  { nameFr: "Portugal", nameEn: "Portugal", flag: "🇵🇹", status: "QUALIFIED", group: "Groupe H", bestResultFr: "Troisième (1966)", bestResultEn: "Third place (1966)", supportPct: 74 },
+  { nameFr: "Italie", nameEn: "Italy", flag: "🇮🇹", status: "QUALIFIED", group: "Groupe E", bestResultFr: "Vainqueur (4 fois)", bestResultEn: "Winner (4 times)", supportPct: 65 },
+  { nameFr: "Allemagne", nameEn: "Germany", flag: "🇩🇪", status: "QUALIFIED", group: "Groupe D", bestResultFr: "Vainqueur (4 fois)", bestResultEn: "Winner (4 times)", supportPct: 62 },
+  { nameFr: "Cameroun", nameEn: "Cameroon", flag: "🇨🇲", status: "QUALIFIED", group: "Groupe F", bestResultFr: "Quart de finale (1990)", bestResultEn: "Quarter-finals (1990)", supportPct: 79 },
+  { nameFr: "États-Unis", nameEn: "United States", flag: "🇺🇸", status: "QUALIFIED", group: "Groupe A", bestResultFr: "Demi-finale (1930)", bestResultEn: "Semi-finals (1930)", supportPct: 55 },
+  { nameFr: "Mexique", nameEn: "Mexico", flag: "🇲🇽", status: "QUALIFIED", group: "Groupe A", bestResultFr: "Quart de finale (1970, 1986)", bestResultEn: "Quarter-finals (1970, 1986)", supportPct: 60 },
+  { nameFr: "Canada", nameEn: "Canada", flag: "🇨🇦", status: "QUALIFIED", group: "Groupe B", bestResultFr: "Phase de groupes (1986, 2022)", bestResultEn: "Group stage (1986, 2022)", supportPct: 48 },
+  { nameFr: "Algérie", nameEn: "Algeria", flag: "🇩🇿", status: "NOT_QUALIFIED", group: "", bestResultFr: "Huitième de finale (2014)", bestResultEn: "Round of 16 (2014)", supportPct: 0 },
+  { nameFr: "Côte d'Ivoire", nameEn: "Ivory Coast", flag: "🇨🇮", status: "QUALIFIED", group: "Groupe G", bestResultFr: "Phase de groupes (3 fois)", bestResultEn: "Group stage (3 times)", supportPct: 76 },
+  { nameFr: "Japon", nameEn: "Japan", flag: "🇯🇵", status: "QUALIFIED", group: "Groupe C", bestResultFr: "Huitième de finale (4 fois)", bestResultEn: "Round of 16 (4 times)", supportPct: 68 },
+  { nameFr: "Égypte", nameEn: "Egypt", flag: "🇪🇬", status: "NOT_QUALIFIED", group: "", bestResultFr: "Phase de groupes (1934, 1990, 2018)", bestResultEn: "Group stage (1934, 1990, 2018)", supportPct: 0 }
+];
+
 function HomeContent() {
   const { 
     articles, 
@@ -267,6 +298,40 @@ function HomeContent() {
   const [showTrendingMenu, setShowTrendingMenu] = useState(false);
   const [isRefreshingArticles, setIsRefreshingArticles] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const [activeOpinionTab, setActiveOpinionTab] = useState<'POLL' | 'SEARCH'>('POLL');
+  const [searchCountryQuery, setSearchCountryQuery] = useState("");
+  const [votedCountries, setVotedCountries] = useState<{[key: string]: boolean}>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("komentel_voted_countries");
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+  const [localCountryVotes, setLocalCountryVotes] = useState<{[key: string]: number}>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("komentel_local_country_votes");
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+
+  const handleSupportCountry = (countryName: string) => {
+    if (votedCountries[countryName]) return;
+    
+    const newVotes = { ...localCountryVotes, [countryName]: (localCountryVotes[countryName] || 0) + 1 };
+    setLocalCountryVotes(newVotes);
+    
+    const newVoted = { ...votedCountries, [countryName]: true };
+    setVotedCountries(newVoted);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("komentel_local_country_votes", JSON.stringify(newVotes));
+      localStorage.setItem("komentel_voted_countries", JSON.stringify(newVoted));
+    }
+
+    showToast(language === "FR" ? `Opinion enregistrée pour ${countryName} !` : `Opinion registered for ${countryName}!`);
+  };
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -473,6 +538,232 @@ function HomeContent() {
     .filter(art => !hiddenCategories.includes(art.category))
     .filter((art, idx, self) => self.findIndex(a => a.id === art.id) === idx)
     .sort((a, b) => b.views - a.views);
+
+  const renderPollCard = (isSidebar: boolean = false) => {
+    const filteredCountries = worldCupCountries.filter(c => {
+      const q = searchCountryQuery.toLowerCase().trim();
+      return c.nameFr.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q);
+    });
+
+    return (
+      <div className={`portal-card p-5 shadow-premium relative overflow-hidden border border-white/10 glow-indigo flex flex-col justify-between h-[350px] ${isSidebar ? "w-full" : "w-full"}`}>
+        <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-xl pointer-events-none"></div>
+        <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-accent/10 rounded-full blur-xl pointer-events-none"></div>
+        
+        <div className="relative z-10 flex flex-col justify-between h-full w-full">
+          <div>
+            {/* Header Tabs */}
+            <div className="flex justify-between items-center mb-3 pb-1.5 border-b border-white/5">
+              <div className="flex gap-1.5">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveOpinionTab('POLL');
+                  }}
+                  className={`text-[9px] font-extrabold uppercase px-2 py-1 rounded transition-all cursor-pointer border ${
+                    activeOpinionTab === 'POLL'
+                      ? "bg-accent/15 border-accent/30 text-accent shadow-[0_0_8px_rgba(244,63,94,0.15)]"
+                      : "bg-white/5 border-transparent text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {t("Sondage", "Poll")}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveOpinionTab('SEARCH');
+                  }}
+                  className={`text-[9px] font-extrabold uppercase px-2 py-1 rounded transition-all cursor-pointer border ${
+                    activeOpinionTab === 'SEARCH'
+                      ? "bg-accent/15 border-accent/30 text-accent shadow-[0_0_8px_rgba(244,63,94,0.15)]"
+                      : "bg-white/5 border-transparent text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {t("Équipes 2026", "2026 Teams")}
+                </button>
+              </div>
+              <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">
+                FIFA WORLD CUP
+              </span>
+            </div>
+            
+            {activeOpinionTab === 'POLL' ? (
+              <div className="animate-in fade-in duration-200">
+                <h3 className="font-serif text-xs sm:text-sm font-bold leading-snug mb-3 text-white">
+                  {language === 'FR' ? poll.question : (poll.questionEn || poll.question)}
+                </h3>
+                
+                {poll.votedOptionIndex === null ? (
+                  <div className="space-y-1.5 mb-2">
+                    {poll.options.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setActivePollVote(idx);
+                        }}
+                        className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold border transition-all duration-200 cursor-pointer ${
+                          activePollVote === idx
+                            ? "bg-white text-slate-900 border-white shadow-md scale-[1.01]"
+                            : "bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-primary/30 text-slate-205 hover:scale-[1.01]"
+                        }`}
+                      >
+                        {language === 'FR' ? opt.label : (opt.labelEn || opt.label)}
+                      </button>
+                    ))}
+                    <button
+                      disabled={activePollVote === null}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleVote();
+                      }}
+                      className="w-full font-bold text-xs py-2 rounded-lg mt-2 shadow transition-all hover:scale-[1.01] uppercase tracking-wider cursor-pointer disabled:cursor-not-allowed border bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent-hover text-white border-transparent disabled:opacity-40 disabled:bg-none disabled:border-white/5 disabled:text-slate-500"
+                    >
+                      {t("Valider mon vote", "Submit Vote")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 mb-2">
+                    {poll.options.map((opt, idx) => {
+                      const pct = totalPollVotes > 0 ? Math.round((opt.votes / totalPollVotes) * 100) : 0;
+                      const isVoted = poll.votedOptionIndex === idx;
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-xs font-bold">
+                            <span className={isVoted ? "text-accent font-extrabold" : "text-slate-200"}>
+                              {language === 'FR' ? opt.label : (opt.labelEn || opt.label)} {isVoted && "✔️"}
+                            </span>
+                            <span className={isVoted ? "text-accent font-extrabold" : "text-slate-350"}>{pct}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden border border-white/5">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-1000 ${
+                                isVoted 
+                                  ? "bg-gradient-to-r from-primary to-accent glow-accent" 
+                                  : "bg-slate-400/50"
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-[8px] text-white/45 text-center font-bold uppercase mt-2">
+                      Total: {totalPollVotes.toLocaleString()} {t("votes", "votes")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="animate-in fade-in duration-200">
+                <div className="relative mb-2.5">
+                  <input 
+                    type="text" 
+                    placeholder={t("Rechercher un pays...", "Search a country...")}
+                    value={searchCountryQuery}
+                    onChange={(e) => setSearchCountryQuery(e.target.value)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 px-3 pl-8 text-xs text-white placeholder-slate-400 focus:bg-white/10 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
+                  />
+                  <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  {searchCountryQuery && (
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSearchCountryQuery("");
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-[10px] font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 overflow-y-auto pr-1 h-[200px] scrollbar-thin">
+                  {filteredCountries.length === 0 ? (
+                    <div className="text-center text-xs text-slate-500 py-6">
+                      {t("Aucun pays trouvé.", "No countries found.")}
+                    </div>
+                  ) : (
+                    filteredCountries.map(c => {
+                      const votesCount = localCountryVotes[c.nameFr] || 0;
+                      const totalScore = Math.min(100, c.supportPct + votesCount);
+                      const hasVoted = votedCountries[c.nameFr];
+
+                      return (
+                        <div key={c.nameFr} className="bg-white/[0.02] border border-white/5 rounded-lg p-2 flex items-center justify-between transition-colors hover:bg-white/[0.04]">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-lg shrink-0">{c.flag}</span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] font-bold text-white truncate">{language === 'FR' ? c.nameFr : c.nameEn}</span>
+                                {c.status === "QUALIFIED" ? (
+                                  <span className="text-[8px] bg-green-500/15 border border-green-500/30 text-green-400 px-1 rounded font-bold uppercase shrink-0">
+                                    {c.group}
+                                  </span>
+                                ) : (
+                                  <span className="text-[8px] bg-red-500/15 border border-red-500/30 text-red-400 px-1 rounded font-bold uppercase shrink-0">
+                                    {t("Non qualifié", "Not Qualified")}
+                                  </span>
+                                )}
+                              </div>
+                              {c.status === "QUALIFIED" && (
+                                <p className="text-[8px] text-slate-400 truncate">
+                                  {t("Meilleur : ", "Best: ")}
+                                  {language === 'FR' ? c.bestResultFr : c.bestResultEn}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {c.status === "QUALIFIED" && (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <div className="text-right">
+                                <span className="text-[10px] font-extrabold text-accent">{totalScore}%</span>
+                                <span className="text-[7px] block text-slate-500 uppercase tracking-wider">{t("Soutien", "Support")}</span>
+                              </div>
+                              <button
+                                disabled={hasVoted}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleSupportCountry(c.nameFr);
+                                }}
+                                className={`w-6 h-6 rounded border flex items-center justify-center transition-all ${
+                                  hasVoted
+                                    ? "bg-accent border-accent text-white opacity-80"
+                                    : "bg-white/5 border-white/10 text-slate-350 hover:bg-accent/20 hover:border-accent/40 hover:text-white cursor-pointer"
+                                }`}
+                                title={t("Soutenir ce pays", "Support this country")}
+                              >
+                                <ThumbsUp size={9} className={hasVoted ? "fill-white" : ""} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const trendingArticles = globalVisibleArticles.slice(0, 3);
 
@@ -819,127 +1110,54 @@ function HomeContent() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 
-                <div className="portal-card p-6 shadow-premium relative overflow-hidden border border-white/10 glow-indigo flex flex-col justify-between">
-                  <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-xl pointer-events-none"></div>
-                  <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-accent/10 rounded-full blur-xl pointer-events-none"></div>
-                  
-                  <div className="relative z-10 flex flex-col justify-between h-full w-full">
+                {renderPollCard(false)}
+
+                <div className="portal-card p-5 shadow-premium flex flex-col justify-between h-[350px]">
+                  <div className="flex flex-col h-full justify-between">
                     <div>
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="inline-block bg-accent/15 border border-accent/30 text-accent text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider">
-                          {t("Sondage du jour", "Daily Poll")}
+                      <h3 className="font-serif text-xs font-bold text-white pb-2 border-b border-white/5 mb-3 flex items-center justify-between uppercase tracking-wider">
+                        <span className="flex items-center gap-1.5">
+                          <Flame size={13} className="text-accent animate-pulse" />
+                          {t("Duels en cours", "Active Duels")}
                         </span>
-                        <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                          FIFA WORLD CUP
+                        <span className="text-[8px] bg-primary/20 text-primary border border-primary/20 rounded px-1 py-0.5">
+                          Live
                         </span>
-                      </div>
-                      
-                      <h3 className="font-serif text-base sm:text-lg font-bold leading-snug mb-5 text-white">
-                        {language === 'FR' ? poll.question : (poll.questionEn || poll.question)}
                       </h3>
                       
-                      {poll.votedOptionIndex === null ? (
-                        <div className="space-y-2 mb-4">
-                          {poll.options.map((opt, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => setActivePollVote(idx)}
-                              className={`w-full text-left p-3.5 rounded-xl text-xs font-bold border transition-all duration-305 cursor-pointer ${
-                                activePollVote === idx
-                                  ? "bg-white text-slate-900 border-white shadow-[0_0_15px_rgba(255,255,255,0.4)] scale-[1.01]"
-                                  : "bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-primary/30 text-slate-200 hover:scale-[1.01]"
-                              }`}
-                            >
-                              {language === 'FR' ? opt.label : (opt.labelEn || opt.label)}
-                            </button>
+                      {activeDuels.length > 0 ? (
+                        <div className="space-y-2.5 max-h-[265px] overflow-y-auto pr-1 scrollbar-thin">
+                          {activeDuels.map(d => (
+                            <div key={d.id} className="portal-item p-3 space-y-2 transition-colors">
+                              <div className="text-[9px] font-bold text-slate-400 uppercase leading-none truncate">
+                                {d.articleTitle}
+                              </div>
+                              <div className="flex justify-between items-center text-xs font-extrabold text-slate-205">
+                                <span className="text-white truncate max-w-[100px]">{d.challenger}</span>
+                                <span className="text-accent font-black tracking-widest text-[9px] shrink-0">VS</span>
+                                <span className="text-white truncate max-w-[100px]">{d.defender}</span>
+                              </div>
+                              
+                              <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden flex">
+                                <div className="h-full bg-primary glow-indigo" style={{ width: "47%" }}></div>
+                                <div className="h-full bg-accent glow-accent" style={{ width: "53%" }}></div>
+                              </div>
+                              
+                              <Link 
+                                href={`/duel/${d.id}`}
+                                className="block text-center w-full border border-white/10 bg-white/5 hover:bg-primary hover:text-white hover:border-primary text-[9px] font-bold py-1.5 rounded-lg transition-all shadow uppercase tracking-wider"
+                              >
+                                {t("Rejoindre le vote", "Join Vote")}
+                              </Link>
+                            </div>
                           ))}
-                          <button
-                            disabled={activePollVote === null}
-                            onClick={handleVote}
-                            className="w-full font-bold text-xs py-3 rounded-xl mt-3 shadow-lg transition-all hover:scale-[1.01] uppercase tracking-wider cursor-pointer disabled:cursor-not-allowed border bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent-hover text-white border-transparent disabled:opacity-50 disabled:bg-none disabled:border-white/5 disabled:text-slate-500"
-                          >
-                            {t("Valider mon vote", "Submit Vote")}
-                          </button>
                         </div>
                       ) : (
-                        <div className="space-y-4 mb-2">
-                          {poll.options.map((opt, idx) => {
-                            const pct = totalPollVotes > 0 ? Math.round((opt.votes / totalPollVotes) * 100) : 0;
-                            const isVoted = poll.votedOptionIndex === idx;
-                            return (
-                              <div key={idx} className="space-y-1.5">
-                                <div className="flex justify-between text-xs font-bold">
-                                  <span className={isVoted ? "text-accent font-extrabold" : "text-slate-200"}>
-                                    {language === 'FR' ? opt.label : (opt.labelEn || opt.label)} {isVoted && "✔️"}
-                                  </span>
-                                  <span className={isVoted ? "text-accent font-extrabold" : "text-slate-300"}>{pct}%</span>
-                                </div>
-                                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/5">
-                                  <div 
-                                    className={`h-full rounded-full transition-all duration-1000 ${
-                                      isVoted 
-                                        ? "bg-gradient-to-r from-primary to-accent glow-accent" 
-                                        : "bg-slate-400/50"
-                                    }`}
-                                    style={{ width: `${pct}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          <p className="text-[9px] text-white/55 text-center font-bold uppercase mt-4">
-                            Total: {totalPollVotes.toLocaleString()} {t("votes enregistrés", "votes registered")}
-                          </p>
+                        <div className="p-6 text-center text-xs text-slate-500 bg-white/5 rounded-lg border border-white/5">
+                          {t("Aucun duel actif pour le moment.", "No active duels at this time.")}
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                <div className="portal-card p-6 shadow-premium flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-serif text-xs font-bold text-white pb-3 border-b border-white/5 mb-5 flex items-center justify-between uppercase tracking-wider">
-                      <span className="flex items-center gap-1.5">
-                        <Flame size={14} className="text-accent animate-pulse" />
-                        {t("Duels d'arguments en cours", "Active Arguments Duels")}
-                      </span>
-                      <span className="text-[9px] bg-primary/20 text-primary border border-primary/20 rounded px-1.5 py-0.5">
-                        Live
-                      </span>
-                    </h3>
-                    
-                    {activeDuels.length > 0 ? (
-                      <div className="space-y-4">
-                        {activeDuels.map(d => (
-                          <div key={d.id} className="portal-item p-4 space-y-3.5 transition-colors">
-                            <div className="text-[9px] font-bold text-slate-400 uppercase leading-none truncate">
-                              {d.articleTitle}
-                            </div>
-                            <div className="flex justify-between items-center text-xs font-extrabold text-slate-205">
-                              <span className="text-white">{d.challenger}</span>
-                              <span className="text-accent font-black tracking-widest text-[10px]">VS</span>
-                              <span className="text-white">{d.defender}</span>
-                            </div>
-                            
-                            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden flex">
-                              <div className="h-full bg-primary glow-indigo" style={{ width: "47%" }}></div>
-                              <div className="h-full bg-accent glow-accent" style={{ width: "53%" }}></div>
-                            </div>
-                            
-                            <Link 
-                              href={`/duel/${d.id}`}
-                              className="block text-center w-full border border-white/10 bg-white/5 hover:bg-primary hover:text-white hover:border-primary text-[10px] font-bold py-2.5 rounded-xl transition-all shadow-premium uppercase tracking-wider"
-                            >
-                              {t("Rejoindre le vote du duel", "Join Duel Vote")}
-                            </Link>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-8 text-center text-xs text-slate-500 bg-white/5 rounded-xl border border-white/5">
-                        {t("Aucun duel actif pour le moment.", "No active duels at this time.")}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -1121,74 +1339,7 @@ function HomeContent() {
                     </div>
                   </div>
 
-                  <div className="portal-card p-6 shadow-premium relative overflow-hidden border border-white/10 glow-indigo">
-                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 rounded-full blur-xl pointer-events-none"></div>
-                    <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-accent/10 rounded-full blur-xl pointer-events-none"></div>
-                    
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="inline-block bg-accent/15 border border-accent/30 text-accent text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider">
-                        {t("Sondage du jour", "Daily Poll")}
-                      </span>
-                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                        FIFA WORLD CUP
-                      </span>
-                    </div>
-
-                    <h3 className="font-serif text-base font-bold leading-snug mb-5 text-white">
-                      {language === 'FR' ? poll.question : (poll.questionEn || poll.question)}
-                    </h3>
-                    {poll.votedOptionIndex === null ? (
-                      <div className="space-y-2 mb-2">
-                        {poll.options.map((opt, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setActivePollVote(idx)}
-                            className={`w-full text-left p-3.5 rounded-xl text-xs font-bold border transition-all duration-305 cursor-pointer ${
-                              activePollVote === idx
-                                ? "bg-white text-slate-900 border-white shadow-[0_0_15px_rgba(255,255,255,0.4)] scale-[1.01]"
-                                : "bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-primary/30 text-slate-200 hover:scale-[1.01]"
-                            }`}
-                          >
-                            {language === 'FR' ? opt.label : (opt.labelEn || opt.label)}
-                          </button>
-                        ))}
-                        <button
-                          disabled={activePollVote === null}
-                          onClick={handleVote}
-                          className="w-full font-bold text-xs py-3 rounded-xl mt-3 shadow-lg transition-all hover:scale-[1.01] uppercase tracking-wider cursor-pointer disabled:cursor-not-allowed border bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent-hover text-white border-transparent disabled:opacity-50 disabled:bg-none disabled:border-white/5 disabled:text-slate-500"
-                        >
-                          {t("Valider mon vote", "Submit Vote")}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3.5 mb-2">
-                        {poll.options.map((opt, idx) => {
-                          const pct = totalPollVotes > 0 ? Math.round((opt.votes / totalPollVotes) * 100) : 0;
-                          const isVoted = poll.votedOptionIndex === idx;
-                          return (
-                            <div key={idx} className="space-y-1.5">
-                              <div className="flex justify-between text-xs font-bold">
-                                <span className={isVoted ? "text-accent font-extrabold" : "text-slate-200"}>
-                                  {language === 'FR' ? opt.label : (opt.labelEn || opt.label)} {isVoted && "✔️"}
-                                </span>
-                                <span className={isVoted ? "text-accent font-extrabold" : "text-slate-300"}>{pct}%</span>
-                              </div>
-                              <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden border border-white/5">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-1000 ${
-                                    isVoted 
-                                      ? "bg-gradient-to-r from-primary to-accent glow-accent" 
-                                      : "bg-slate-400/50"
-                                  }`} 
-                                  style={{ width: `${pct}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  {renderPollCard(true)}
                 </div>
 
               </div>

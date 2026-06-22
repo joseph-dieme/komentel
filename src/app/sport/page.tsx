@@ -119,7 +119,7 @@ export default function SportPage() {
     challengeToDuel
   } = useKomentel();
 
-  const [selectedSport, setSelectedSport] = useState<'ALL' | 'FOOTBALL' | 'LUTTE' | 'BASKETBALL'>('ALL');
+  const [selectedSport, setSelectedSport] = useState<'ALL' | 'FOOTBALL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LIVE' | 'FINISHED' | 'UPCOMING'>('ALL');
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -200,8 +200,8 @@ export default function SportPage() {
       .replace("Victoire", "Victory");
   };
 
-  // Consolidated matches list
-  const combinedMatches = matches;
+  // Consolidated matches list (filtered to Football only)
+  const combinedMatches = matches.filter(m => m.sport === 'FOOTBALL');
 
   // Filtering Logic
   const filteredMatches = combinedMatches.filter(m => {
@@ -250,9 +250,7 @@ export default function SportPage() {
 
   const sportsList = [
     { id: 'ALL', label: t("Tous les sports", "All Sports"), icon: "🏆" },
-    { id: 'FOOTBALL', label: t("Football", "Football"), icon: "⚽" },
-    { id: 'LUTTE', label: t("Lutte Sénégalaise", "Senegalese Wrestling"), icon: "🤼" },
-    { id: 'BASKETBALL', label: t("Basketball", "Basketball"), icon: "🏀" }
+    { id: 'FOOTBALL', label: t("Football", "Football"), icon: "⚽" }
   ];
 
   return (
@@ -283,7 +281,7 @@ export default function SportPage() {
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 font-semibold mt-1.5 uppercase tracking-wider flex items-center gap-2">
               <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-              {t("Scores en direct de la Coupe du Monde de la FIFA, Basket-ball & Lutte Sénégalaise", "Live Scores for FIFA World Cup, Basketball & Senegalese Wrestling")}
+              {t("Scores en direct de la Coupe du Monde de la FIFA", "Live Scores for FIFA World Cup")}
             </p>
           </div>
 
@@ -417,7 +415,7 @@ export default function SportPage() {
           <div className="relative w-full md:w-80">
             <input 
               type="text" 
-              placeholder={t("Rechercher une équipe ou un lutteur...", "Search team or wrestler...")}
+              placeholder={t("Rechercher une équipe...", "Search team...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:bg-white/10 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
@@ -440,11 +438,11 @@ export default function SportPage() {
                   <tr className="border-b border-white/10 bg-white/[0.02]">
                     <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">{t("Sport / Statut", "Sport / Status")}</th>
                     <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-right w-1/3">
-                      {selectedSport === 'LUTTE' ? t("Lutteur 1", "Wrestler 1") : t("Équipe Domicile", "Home Team")}
+                      {t("Équipe Domicile", "Home Team")}
                     </th>
-                    <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-center w-36">{t("Score / Phase", "Score / Phase")}</th>
+                    <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-center w-36">{t("Score", "Score")}</th>
                     <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 w-1/3">
-                      {selectedSport === 'LUTTE' ? t("Lutteur 2", "Wrestler 2") : t("Équipe Extérieur", "Away Team")}
+                      {t("Équipe Extérieur", "Away Team")}
                     </th>
                     <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-center">{t("Détail", "Detail")}</th>
                     <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-center">{t("Débat", "Debate")}</th>
@@ -497,19 +495,17 @@ export default function SportPage() {
                           <div className="flex justify-center">
                             <span className={`px-4 py-1.5 rounded-lg text-sm font-extrabold font-mono tracking-wider shadow-inner ${
                               isLive 
-                                ? m.sport === 'LUTTE'
-                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 glow-amber"
-                                  : "bg-red-500/10 text-red-400 border border-red-500/20 glow-red"
+                                ? "bg-red-500/10 text-red-400 border border-red-500/20 glow-red"
                                 : isFinished
                                   ? "bg-white/5 text-slate-300 border border-white/5"
                                   : "bg-white/[0.02] text-slate-500 border border-white/5"
                             }`}>
-                              {m.sport === 'LUTTE' ? t(m.score, m.score === "Préparation" ? "Preparation" : m.score) : m.score}
+                              {m.score}
                             </span>
                           </div>
                         </td>
 
-                        {/* Away Wrestler / Team */}
+                        {/* Away Team */}
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             {renderTeamFlag(m.awayTeam.name, m.awayTeam.flag)}
@@ -520,7 +516,7 @@ export default function SportPage() {
                         {/* Detail / Minute */}
                         <td className="p-4 text-center whitespace-nowrap text-xs text-slate-400 font-medium">
                           {isLive ? (
-                            <span className={`${m.sport === 'LUTTE' ? "text-amber-400" : "text-red-400"} font-bold flex items-center justify-center gap-1 animate-pulse`}>
+                            <span className="text-red-400 font-bold flex items-center justify-center gap-1 animate-pulse">
                               <Clock size={12} />
                               {translateMatchDetail(m.detail)}
                             </span>

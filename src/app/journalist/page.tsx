@@ -6,6 +6,19 @@ import { Footer } from "@/components/Footer";
 import { useKomentel } from "@/context/KomentelContext";
 import { PlusCircle, BarChart2, DollarSign, BookOpen, MessageSquare, Swords, Eye, CheckCircle2, AlertTriangle, ArrowRight, Plus, Trash } from "lucide-react";
 
+const defaultMediaLibrary = [
+  { id: "img-1", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800", title: "Université & Éducation", tag: "Éducation" },
+  { id: "img-2", url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800", title: "Réseau global & Technologie", tag: "Technologie" },
+  { id: "img-3", url: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=800", title: "Conférence de presse & Affaires", tag: "Business" },
+  { id: "img-4", url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=800", title: "Bâtiment moderne", tag: "Business" },
+  { id: "img-5", url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=800", title: "Stade & Match de Football", tag: "Sport" },
+  { id: "img-6", url: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=800", title: "Événement sportif", tag: "Sport" },
+  { id: "img-7", url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800", title: "Graphiques & Économie", tag: "Business" },
+  { id: "img-8", url: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=800", title: "Conférence & IA", tag: "Technologie" },
+  { id: "img-9", url: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=800", title: "Culture & Concert", tag: "Culture" },
+  { id: "img-10", url: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=800", title: "Festival & Événement", tag: "Culture" }
+];
+
 export default function JournalistPage() {
   const { user, setUser, articles, comments, duels, addArticle } = useKomentel();
 
@@ -19,6 +32,94 @@ export default function JournalistPage() {
   const [videoUrl, setVideoUrl] = useState("");
   const [additionalImagesStr, setAdditionalImagesStr] = useState("");
   const [isPublished, setIsPublished] = useState(false);
+
+  // Media Library States
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [mediaModalTarget, setMediaModalTarget] = useState<'COVER' | 'ADDITIONAL'>('COVER');
+  const [mediaModalTab, setMediaModalTab] = useState<'GALLERY' | 'UPLOADS'>('GALLERY');
+  const [localMedia, setLocalMedia] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("komentel_user_media");
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+
+  const handleUploadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      const updatedMedia = [base64String, ...localMedia];
+      setLocalMedia(updatedMedia);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("komentel_user_media", JSON.stringify(updatedMedia));
+      }
+      
+      // Select the uploaded image immediately
+      if (mediaModalTarget === 'COVER') {
+        setImageUrl(base64String);
+      } else {
+        handleAddAdditionalImage(base64String);
+      }
+      setIsMediaModalOpen(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadFileInline = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      const updatedMedia = [base64String, ...localMedia];
+      setLocalMedia(updatedMedia);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("komentel_user_media", JSON.stringify(updatedMedia));
+      }
+      
+      // Set as Cover Image immediately when uploaded inline
+      setImageUrl(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDeleteMedia = (e: React.MouseEvent, url: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const updated = localMedia.filter(item => item !== url);
+    setLocalMedia(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("komentel_user_media", JSON.stringify(updated));
+    }
+  };
+
+  const handleAddAdditionalImage = (url: string) => {
+    const current = additionalImagesStr
+      ? additionalImagesStr.split(",").map(u => u.trim()).filter(u => u !== "")
+      : [];
+    if (current.includes(url)) return;
+    const next = [...current, url].join(", ");
+    setAdditionalImagesStr(next);
+  };
+
+  const handleRemoveAdditionalImage = (url: string) => {
+    const current = additionalImagesStr
+      ? additionalImagesStr.split(",").map(u => u.trim()).filter(u => u !== "")
+      : [];
+    const next = current.filter(u => u !== url).join(", ");
+    setAdditionalImagesStr(next);
+  };
+
+  const openMediaModal = (target: 'COVER' | 'ADDITIONAL') => {
+    setMediaModalTarget(target);
+    setMediaModalTab('GALLERY');
+    setIsMediaModalOpen(true);
+  };
 
   // Dynamic paragraphs handlers
   const handleAddParagraph = () => {
@@ -310,15 +411,39 @@ export default function JournalistPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Image de couverture principale (URL)</label>
-                          <input 
-                            type="text" 
-                            placeholder="Ex: https://images.unsplash.com/photo-..." 
-                            value={imageUrl}
-                            onChange={e => setImageUrl(e.target.value)}
-                            disabled={!user.accredited}
-                            className="w-full border border-white/10 bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                          />
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              placeholder="Ex: https://images.unsplash.com/photo-..." 
+                              value={imageUrl}
+                              onChange={e => setImageUrl(e.target.value)}
+                              disabled={!user.accredited}
+                              className="flex-1 border border-white/10 bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => openMediaModal("COVER")}
+                              disabled={!user.accredited}
+                              className="bg-primary hover:bg-primary-hover disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-xs font-bold px-3.5 rounded-lg flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                            >
+                              📁 Médiathèque
+                            </button>
+                          </div>
+
+                          {imageUrl && (
+                            <div className="relative w-28 h-16 rounded-lg overflow-hidden border border-white/10 mt-2 group animate-in fade-in duration-200">
+                              <img src={imageUrl} className="w-full h-full object-cover" alt="Aperçu couverture" />
+                              <button
+                                type="button"
+                                onClick={() => setImageUrl("")}
+                                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 font-bold text-xs transition-opacity"
+                              >
+                                Retirer
+                              </button>
+                            </div>
+                          )}
                         </div>
+
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lien Vidéo (YouTube / MP4)</label>
                           <input 
@@ -331,16 +456,164 @@ export default function JournalistPage() {
                           />
                         </div>
                       </div>
+
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Photos additionnelles (URLs séparées par des virgules)</label>
-                        <input 
-                          type="text" 
-                          placeholder="Ex: https://image1.jpg, https://image2.jpg..." 
-                          value={additionalImagesStr}
-                          onChange={e => setAdditionalImagesStr(e.target.value)}
-                          disabled={!user.accredited}
-                          className="w-full border border-white/10 bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                        />
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            placeholder="Ex: https://image1.jpg, https://image2.jpg..." 
+                            value={additionalImagesStr}
+                            onChange={e => setAdditionalImagesStr(e.target.value)}
+                            disabled={!user.accredited}
+                            className="flex-1 border border-white/10 bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => openMediaModal("ADDITIONAL")}
+                            disabled={!user.accredited}
+                            className="bg-primary hover:bg-primary-hover disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-xs font-bold px-3.5 rounded-lg flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                          >
+                            📁 Médiathèque
+                          </button>
+                        </div>
+
+                        {additionalImagesStr && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {additionalImagesStr.split(",").map(u => u.trim()).filter(u => u !== "").map((url, idx) => (
+                              <div key={idx} className="relative w-20 h-14 rounded-lg overflow-hidden border border-white/10 group animate-in fade-in duration-200">
+                                <img src={url} className="w-full h-full object-cover" alt={`Aperçu additionnel ${idx}`} />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAdditionalImage(url)}
+                                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 font-bold text-[10px] transition-opacity"
+                                >
+                                  Retirer
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Inline Media Gallery */}
+                      <div className="border-t border-white/5 pt-4 mt-2 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">
+                            Sélectionner depuis ma Médiathèque
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              id="file-upload-inline"
+                              onChange={handleUploadFileInline}
+                              className="hidden"
+                            />
+                            <label
+                              htmlFor="file-upload-inline"
+                              className="bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-lg cursor-pointer transition-colors inline-flex items-center gap-1 font-sans"
+                            >
+                              📤 Importer une photo...
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                          {/* Local Uploads */}
+                          {localMedia.map((url, idx) => {
+                            const isCover = imageUrl === url;
+                            const isAdditional = additionalImagesStr.split(",").map(u => u.trim()).includes(url);
+                            return (
+                              <div 
+                                key={`upload-${idx}`}
+                                className={`w-28 h-20 rounded-xl overflow-hidden relative shrink-0 group border transition-all ${
+                                  isCover ? "border-primary shadow-[0_0_10px_rgba(99,102,241,0.2)]" : isAdditional ? "border-accent shadow-[0_0_10px_rgba(244,63,94,0.2)]" : "border-white/5"
+                                }`}
+                              >
+                                <img src={url} className="w-full h-full object-cover" alt="Upload" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
+                                  <button
+                                    type="button"
+                                    onClick={() => setImageUrl(url)}
+                                    className="bg-primary hover:bg-primary-hover text-white text-[8px] font-bold px-2 py-0.5 rounded shadow w-20 text-center font-sans"
+                                  >
+                                    Couverture
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddAdditionalImage(url)}
+                                    className="bg-accent hover:bg-accent-hover text-white text-[8px] font-bold px-2 py-0.5 rounded shadow w-20 text-center font-sans"
+                                  >
+                                    Additionnelle
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDeleteMedia(e, url)}
+                                    className="text-red-400 hover:text-red-300 text-[8px] font-bold mt-0.5 font-sans"
+                                  >
+                                    Supprimer
+                                  </button>
+                                </div>
+                                {isCover && (
+                                  <span className="absolute top-1.5 left-1.5 bg-primary text-white text-[7px] font-black uppercase px-1 rounded shadow font-sans">
+                                    Couv.
+                                  </span>
+                                )}
+                                {isAdditional && (
+                                  <span className="absolute top-1.5 left-1.5 bg-accent text-white text-[7px] font-black uppercase px-1 rounded shadow font-sans">
+                                    Add.
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* Default Gallery */}
+                          {defaultMediaLibrary.map((img) => {
+                            const isCover = imageUrl === img.url;
+                            const isAdditional = additionalImagesStr.split(",").map(u => u.trim()).includes(img.url);
+                            return (
+                              <div 
+                                key={img.id}
+                                className={`w-28 h-20 rounded-xl overflow-hidden relative shrink-0 group border transition-all ${
+                                  isCover ? "border-primary shadow-[0_0_10px_rgba(99,102,241,0.2)]" : isAdditional ? "border-accent shadow-[0_0_10px_rgba(244,63,94,0.2)]" : "border-white/5"
+                                }`}
+                              >
+                                <img src={img.url} className="w-full h-full object-cover" alt={img.title} />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity">
+                                  <button
+                                    type="button"
+                                    onClick={() => setImageUrl(img.url)}
+                                    className="bg-primary hover:bg-primary-hover text-white text-[8px] font-bold px-2 py-0.5 rounded shadow w-20 text-center font-sans"
+                                  >
+                                    Couverture
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddAdditionalImage(img.url)}
+                                    className="bg-accent hover:bg-accent-hover text-white text-[8px] font-bold px-2 py-0.5 rounded shadow w-20 text-center font-sans"
+                                  >
+                                    Additionnelle
+                                  </button>
+                                </div>
+                                <span className="absolute bottom-1 right-1 bg-black/70 text-[6px] text-slate-400 font-extrabold uppercase px-1 rounded font-sans">
+                                  {img.tag}
+                                </span>
+                                {isCover && (
+                                  <span className="absolute top-1.5 left-1.5 bg-primary text-white text-[7px] font-black uppercase px-1 rounded shadow font-sans">
+                                    Couv.
+                                  </span>
+                                )}
+                                {isAdditional && (
+                                  <span className="absolute top-1.5 left-1.5 bg-accent text-white text-[7px] font-black uppercase px-1 rounded shadow font-sans">
+                                    Add.
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -481,6 +754,158 @@ export default function JournalistPage() {
           </div>
         )}
 
+        {/* Media Library Modal */}
+        {isMediaModalOpen && (
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl relative">
+              
+              {/* Modal Header */}
+              <div className="p-4 border-b border-white/5 flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-white flex items-center gap-1.5">
+                    📁 Médiathèque Komentel
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    {mediaModalTarget === "COVER" 
+                      ? "Sélectionnez l'image de couverture principale pour votre article" 
+                      : "Sélectionnez une image additionnelle pour votre article"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsMediaModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Modal Tabs & Actions */}
+              <div className="px-4 py-3 bg-slate-950/40 border-b border-white/5 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setMediaModalTab('GALLERY')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      mediaModalTab === 'GALLERY'
+                        ? "bg-primary text-white"
+                        : "bg-white/5 text-slate-450 hover:text-white"
+                    }`}
+                  >
+                    🖼️ Galerie Générale
+                  </button>
+                  <button
+                    onClick={() => setMediaModalTab('UPLOADS')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      mediaModalTab === 'UPLOADS'
+                        ? "bg-primary text-white"
+                        : "bg-white/5 text-slate-450 hover:text-white"
+                    }`}
+                  >
+                    📂 Mon Média ({localMedia.length})
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="file-upload-input"
+                    onChange={handleUploadFile}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="file-upload-input"
+                    className="bg-accent hover:bg-accent-hover text-white text-xs font-bold px-4 py-2 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    📤 Importer une photo...
+                  </label>
+                </div>
+              </div>
+
+              {/* Modal Grid List */}
+              <div className="p-6 overflow-y-auto flex-1 max-h-[55vh]">
+                {mediaModalTab === 'GALLERY' ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-in fade-in duration-200">
+                    {defaultMediaLibrary.map((img) => (
+                      <div
+                        key={img.id}
+                        onClick={() => {
+                          if (mediaModalTarget === 'COVER') {
+                            setImageUrl(img.url);
+                          } else {
+                            handleAddAdditionalImage(img.url);
+                          }
+                          setIsMediaModalOpen(false);
+                        }}
+                        className="bg-white/5 border border-white/5 rounded-xl overflow-hidden hover:border-primary/45 transition-all cursor-pointer group hover:scale-[1.01]"
+                      >
+                        <div className="h-28 overflow-hidden relative">
+                          <img src={img.url} className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300" alt={img.title} />
+                          <span className="absolute bottom-2 left-2 bg-black/60 text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded text-slate-300 font-sans">
+                            {img.tag}
+                          </span>
+                        </div>
+                        <div className="p-2.5">
+                          <p className="text-[10px] font-bold text-white truncate leading-snug font-sans">{img.title}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="animate-in fade-in duration-200">
+                    {localMedia.length === 0 ? (
+                      <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+                        <p className="text-sm text-slate-400 font-medium font-sans">Votre médiathèque personnelle est vide.</p>
+                        <p className="text-[11px] text-slate-500 mt-1 font-sans">Cliquez sur "Importer une photo" en haut à droite pour ajouter vos fichiers locaux.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {localMedia.map((base64, index) => (
+                          <div
+                            key={index}
+                            onClick={() => {
+                              if (mediaModalTarget === 'COVER') {
+                                setImageUrl(base64);
+                              } else {
+                                handleAddAdditionalImage(base64);
+                              }
+                              setIsMediaModalOpen(false);
+                            }}
+                            className="bg-white/5 border border-white/5 rounded-xl overflow-hidden hover:border-primary/45 transition-all cursor-pointer group hover:scale-[1.01] relative"
+                          >
+                            <div className="h-28 overflow-hidden relative">
+                              <img src={base64} className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300" alt={`Upload ${index}`} />
+                              <button
+                                onClick={(e) => handleDeleteMedia(e, base64)}
+                                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow"
+                                title="Supprimer"
+                              >
+                                <Trash size={10} />
+                              </button>
+                            </div>
+                            <div className="p-2.5">
+                              <p className="text-[10px] font-bold text-white truncate leading-snug font-sans">Mon image #{localMedia.length - index}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-slate-950/40 border-t border-white/5 flex items-center justify-end">
+                <button
+                  onClick={() => setIsMediaModalOpen(false)}
+                  className="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer font-sans"
+                >
+                  Fermer
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
       </main>
 
       <Footer />
