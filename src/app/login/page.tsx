@@ -30,7 +30,7 @@ function LoginContent() {
 
   const redirectPath = searchParams.get("redirect") || "/";
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
 
@@ -39,7 +39,7 @@ function LoginContent() {
       return;
     }
 
-    const success = loginUser(loginEmail.trim(), loginPassword.trim());
+    const success = await loginUser(loginEmail.trim(), loginPassword.trim());
     if (success) {
       router.push(redirectPath);
     } else {

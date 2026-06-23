@@ -178,7 +178,7 @@ interface KomentelContextType {
   setSearchQuery: (query: string) => void;
   registeredUsers: RegisteredUser[];
   registerUser: (name: string, email: string, role?: 'USER' | 'JOURNALIST' | 'ADMIN', password?: string) => void;
-  loginUser: (email: string, password?: string) => boolean;
+  loginUser: (email: string, password?: string) => Promise<boolean>;
   logoutUser: () => void;
   completeOnboarding: (details: { interests?: string[]; pressCard?: string; media?: string; bio?: string; photoUrl?: string }) => void;
   accreditJournalist: (email: string) => Promise<void>;
@@ -542,11 +542,50 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const loginUser = (email: string, password?: string): boolean => {
-    const found = registeredUsers.find(
+  const loginUser = async (email: string, password?: string): Promise<boolean> => {
+    let found = registeredUsers.find(
       u => u.email.toLowerCase() === email.toLowerCase() && 
       (u.password === password || (!u.password && password === "password123"))
     );
+
+    if (!found) {
+      try {
+        const { data, error } = await supabase
+          .from("registered_users")
+          .select("*")
+          .eq("email", email.toLowerCase())
+          .single();
+
+        if (!error && data) {
+          const u = data;
+          const formattedUser = {
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            interests: typeof u.interests === "string" ? JSON.parse(u.interests) : u.interests,
+            pressCard: u.press_card,
+            media: u.media,
+            bio: u.bio,
+            photoUrl: u.photo_url,
+            accredited: u.accredited,
+            password: u.password,
+            duelsStats: { wins: u.duels_wins, losses: u.duels_losses, ratio: u.duels_ratio }
+          };
+          
+          setRegisteredUsers(prev => {
+            if (prev.some(x => x.email.toLowerCase() === u.email.toLowerCase())) return prev;
+            return [...prev, formattedUser];
+          });
+
+          if (u.password === password || (!u.password && password === "password123")) {
+            found = formattedUser;
+          }
+        }
+      } catch (err) {
+        console.error("Direct login fetch failed:", err);
+      }
+    }
+
     if (found) {
       setUser({
         name: found.name,
