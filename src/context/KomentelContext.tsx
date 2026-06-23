@@ -488,24 +488,7 @@ const mapStoryToArticle = (story: any): Article => {
 
 export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 1. Initial Mock User
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window !== "undefined") {
-      const savedSession = localStorage.getItem("komentel_user_session");
-      if (savedSession) {
-        return null;
-      }
-      localStorage.setItem("komentel_user_session", JSON.stringify({ email: "jtech221plus@gmail.com" }));
-    }
-    return {
-      name: "Joseph Dieme",
-      email: "jtech221plus@gmail.com",
-      role: "ADMIN",
-      duelsStats: { wins: 0, losses: 0, ratio: 0 },
-      activeDuelingEnabled: true,
-      interests: ["Actualités", "Sport", "Culture", "Technologie", "Business", "Santé", "Éducation"],
-      accredited: true
-    };
-  });
+  const [user, setUser] = useState<User | null>(null);
 
   // Poll Voted At Timestamp
   const [votedAt, setVotedAt] = useState<number | null>(null);
@@ -1048,28 +1031,38 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // Restore user session
           if (typeof window !== "undefined") {
             const savedSession = localStorage.getItem("komentel_user_session");
+            let found = null;
             if (savedSession) {
               try {
                 const parsed = JSON.parse(savedSession);
-                const found = formattedUsers.find((u: any) => u.email.toLowerCase() === parsed.email.toLowerCase());
-                if (found) {
-                  setUser({
-                    name: found.name,
-                    email: found.email,
-                    role: found.role,
-                    duelsStats: found.duelsStats,
-                    activeDuelingEnabled: true,
-                    interests: found.interests,
-                    pressCard: found.pressCard,
-                    media: found.media,
-                    bio: found.bio,
-                    photoUrl: found.photoUrl,
-                    accredited: found.accredited
-                  });
-                }
+                found = formattedUsers.find((u: any) => u.email.toLowerCase() === parsed.email.toLowerCase());
               } catch (e) {
                 console.error(e);
               }
+            }
+            
+            // If no session exists, default to our admin user session
+            if (!found) {
+              found = formattedUsers.find((u: any) => u.email.toLowerCase() === "jtech221plus@gmail.com");
+              if (found) {
+                localStorage.setItem("komentel_user_session", JSON.stringify({ email: "jtech221plus@gmail.com" }));
+              }
+            }
+            
+            if (found) {
+              setUser({
+                name: found.name,
+                email: found.email,
+                role: found.role,
+                duelsStats: found.duelsStats,
+                activeDuelingEnabled: true,
+                interests: found.interests,
+                pressCard: found.pressCard,
+                media: found.media,
+                bio: found.bio,
+                photoUrl: found.photoUrl,
+                accredited: found.accredited
+              });
             }
           }
         }
