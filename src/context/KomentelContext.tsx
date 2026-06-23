@@ -1875,7 +1875,7 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Theme Management
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [language, setLanguage] = useState<'FR' | 'EN'>('FR');
   const [tempUnit, setTempUnit] = useState<'C' | 'F'>('C');
   const [layoutMode, setLayoutMode] = useState<'GRID' | 'LIST'>('GRID');
@@ -1896,7 +1896,8 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           document.documentElement.classList.remove("light");
         }
       } else {
-        document.documentElement.classList.remove("light");
+        setTheme("light");
+        document.documentElement.classList.add("light");
       }
 
       // Language
