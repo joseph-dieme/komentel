@@ -191,6 +191,24 @@ function LoginContent() {
                       password123
                     </span>
                   </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginEmail("jtech221plus@gmail.com");
+                      setLoginPassword("N3pt9%(Tech)");
+                    }}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-all text-[11px] text-left cursor-pointer group"
+                  >
+                    <div>
+                      <p className="font-bold text-slate-200 group-hover:text-white">Mon Admin (Joseph)</p>
+                      <p className="text-[10px] text-slate-400">jtech221plus@gmail.com</p>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/20 font-mono">
+                      N3pt9%(Tech)
+                    </span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => {
