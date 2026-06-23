@@ -1248,7 +1248,7 @@ function HomeContent() {
                                 href={`/duel/${d.id}`}
                                 className="block text-center w-full border border-white/10 bg-white/5 hover:bg-primary hover:text-white hover:border-primary text-[9px] font-bold py-1.5 rounded-lg transition-all shadow uppercase tracking-wider"
                               >
-                                {t("Rejoindre le vote", "Join Vote")}
+                                {t("Rejoindre le débat", "Join Debate")}
                               </Link>
                             </div>
                           ))}
