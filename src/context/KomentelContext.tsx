@@ -488,7 +488,24 @@ const mapStoryToArticle = (story: any): Article => {
 
 export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 1. Initial Mock User
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== "undefined") {
+      const savedSession = localStorage.getItem("komentel_user_session");
+      if (savedSession) {
+        return null;
+      }
+      localStorage.setItem("komentel_user_session", JSON.stringify({ email: "jtech221plus@gmail.com" }));
+    }
+    return {
+      name: "Joseph Dieme",
+      email: "jtech221plus@gmail.com",
+      role: "ADMIN",
+      duelsStats: { wins: 0, losses: 0, ratio: 0 },
+      activeDuelingEnabled: true,
+      interests: ["Actualités", "Sport", "Culture", "Technologie", "Business", "Santé", "Éducation"],
+      accredited: true
+    };
+  });
 
   // Poll Voted At Timestamp
   const [votedAt, setVotedAt] = useState<number | null>(null);
