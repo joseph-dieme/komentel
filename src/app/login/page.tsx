@@ -166,6 +166,49 @@ function LoginContent() {
               >
                 Connexion
               </button>
+
+              {/* Demo Accounts Panel */}
+              <div className="mt-6 pt-5 border-t border-white/5 space-y-3 font-sans">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Comptes de Test (Démo)
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginEmail("admin.moderator@komentel.sn");
+                      setLoginPassword("password123");
+                    }}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all text-[11px] text-left cursor-pointer group"
+                  >
+                    <div>
+                      <p className="font-bold text-slate-200 group-hover:text-white">Admin Modérateur</p>
+                      <p className="text-[10px] text-slate-400">admin.moderator@komentel.sn</p>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/20 font-mono">
+                      password123
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginEmail("amadou.diallo@komentel.sn");
+                      setLoginPassword("password123");
+                    }}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-[11px] text-left cursor-pointer group"
+                  >
+                    <div>
+                      <p className="font-bold text-slate-200 group-hover:text-white">Journaliste Rédacteur</p>
+                      <p className="text-[10px] text-slate-400">amadou.diallo@komentel.sn</p>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-mono">
+                      password123
+                    </span>
+                  </button>
+                </div>
+              </div>
             </form>
           ) : (
             /* Signup/Register Form */
