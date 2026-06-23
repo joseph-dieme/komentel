@@ -174,52 +174,13 @@ export default function SportPage() {
     refreshMatches, 
     resetSimulatedMatches,
     language,
-    comments,
-    addComment,
-    likeComment,
-    dislikeComment,
-    reportComment,
-    user,
-    challengeToDuel
+    user
   } = useKomentel();
 
   const [selectedSport, setSelectedSport] = useState<'ALL' | 'FOOTBALL' | 'BASKETBALL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LIVE' | 'FINISHED' | 'UPCOMING'>('ALL');
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeDebateMatch, setActiveDebateMatch] = useState<any | null>(null);
-  const [newCommentText, setNewCommentText] = useState("");
-  const [customAuthorName, setCustomAuthorName] = useState("");
-
-  // Duel Challenge Modal State
-  const [showDuelModal, setShowDuelModal] = useState(false);
-  const [duelTargetCommentId, setDuelTargetCommentId] = useState<string | null>(null);
-  const [duelOpponentName, setDuelOpponentName] = useState("");
-  const [duelOpeningText, setDuelOpeningText] = useState("");
-
-  const handleOpenDuelModal = (commentId: string, authorName: string) => {
-    if (!user) {
-      window.location.href = `/login?redirect=/sport`;
-      return;
-    }
-    if (user.name === authorName) {
-      alert("Vous ne pouvez pas vous défier vous-même !");
-      return;
-    }
-    setDuelTargetCommentId(commentId);
-    setDuelOpponentName(authorName);
-    setDuelOpeningText(`Je conteste votre affirmation sur ce match. Voici mon argument : `);
-    setShowDuelModal(true);
-  };
-
-  const handleLaunchDuel = () => {
-    if (!duelTargetCommentId || !duelOpeningText.trim() || !activeDebateMatch) return;
-    challengeToDuel(activeDebateMatch.id, duelTargetCommentId, duelOpponentName, duelOpeningText);
-    setShowDuelModal(false);
-    setDuelTargetCommentId(null);
-    setDuelOpeningText("");
-    alert(`Défi envoyé avec succès à ${duelOpponentName} ! Consultez vos notifications pour entrer dans l'arène.`);
-  };
 
   // Localization helper
   const t = (frText: string, enText: string) => {
@@ -505,7 +466,7 @@ export default function SportPage() {
                       {t("Équipe Extérieur", "Away Team")}
                     </th>
                     <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-center">{t("Détail", "Detail")}</th>
-                    <th className="p-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-center">{t("Débat", "Debate")}</th>
+
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 font-semibold text-sm">
@@ -584,22 +545,6 @@ export default function SportPage() {
                             <span>{translateMatchDetail(m.detail)}</span>
                           )}
                         </td>
-
-                        {/* Debate Action Button */}
-                        <td className="p-4 text-center">
-                          <button 
-                            onClick={() => {
-                              setActiveDebateMatch(m);
-                              setNewCommentText("");
-                              setCustomAuthorName("");
-                            }}
-                            className="inline-flex items-center justify-center gap-1.5 bg-white/5 hover:bg-primary border border-white/10 hover:border-primary px-3.5 py-1.5 rounded-lg text-xs text-slate-200 hover:text-white font-bold transition-all cursor-pointer"
-                            title={t("Rejoindre le débat en direct", "Join the live debate")}
-                          >
-                            <MessageSquare size={12} />
-                            <span className="hidden sm:inline">{t("Débattre", "Debate")}</span>
-                          </button>
-                        </td>
                       </tr>
                     );
                   })}
@@ -608,283 +553,7 @@ export default function SportPage() {
             </div>
           )}
         </div>
-
-        {/* Debate Community Promo Section */}
-        <section className="mt-12 bg-gradient-to-r from-primary/10 to-accent/10 border border-white/10 p-6 sm:p-8 rounded-2xl shadow-premium relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="relative z-10 max-w-3xl">
-            <span className="inline-block bg-accent/20 border border-accent/30 text-accent text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider mb-3">
-              {t("VOTRE AVIS COMPTE", "YOUR OPINION MATTERS")}
-            </span>
-            <h3 className="font-serif text-xl sm:text-2xl font-bold text-white mb-2 leading-tight">
-              {t("Qui va l'emporter ? Lancez un duel d'opinions !", "Who will win? Start an opinion duel!")}
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-350 leading-relaxed mb-5">
-              {t("Komentel est un espace de débat démocratique et modéré. Partagez vos analyses de matchs, défiez un autre membre de la communauté en duel d'opinions ou publiez vos chroniques sportives de manière accréditée.", "Komentel is a democratic and moderated debate space. Share your match reviews, challenge other members to an opinion duel, or publish accredited sports chronicles.")}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link 
-                href="/?category=Sport"
-                className="bg-primary hover:bg-primary-hover text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-xl transition-all shadow-md"
-              >
-                {t("Voir les duels actifs", "View active duels")}
-              </Link>
-              <Link 
-                href="/journalist"
-                className="bg-white/5 hover:bg-white/10 text-white text-xs font-bold uppercase tracking-wider px-5 py-3 rounded-xl border border-white/5 transition-all"
-              >
-                {t("Écrire une chronique", "Write a chronicle")}
-              </Link>
-            </div>
-          </div>
-        </section>
-
       </main>
-
-      {/* Drawer / Debate Panel */}
-      {activeDebateMatch && (
-        <>
-          {/* Backdrop Overlay */}
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
-            onClick={() => {
-              setActiveDebateMatch(null);
-              setNewCommentText("");
-            }}
-          />
-
-          {/* Drawer Panel */}
-          <div className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-slate-900/95 backdrop-blur-xl border-l border-white/10 z-50 p-6 shadow-premium flex flex-col justify-between animate-in slide-in-from-right duration-300">
-            {/* Header */}
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xl leading-none">{getSportIcon(activeDebateMatch.sport)}</span>
-                  <div>
-                    <h3 className="font-serif text-base font-bold text-white leading-tight">
-                      {activeDebateMatch.homeTeam.name} vs {activeDebateMatch.awayTeam.name}
-                    </h3>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-                      {getSportName(activeDebateMatch.sport)} · {translateMatchStatus(activeDebateMatch.status)}
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => {
-                    setActiveDebateMatch(null);
-                    setNewCommentText("");
-                  }}
-                  className="text-slate-400 hover:text-white text-xl p-1.5 transition-colors focus:outline-none cursor-pointer"
-                >
-                  ×
-                </button>
-              </div>
-
-              {/* Score banner inside drawer */}
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 my-4 flex items-center justify-between text-center">
-                <div className="w-1/3 flex flex-col items-center">
-                  <div className="mb-1 h-8 flex items-center justify-center">
-                    {renderTeamFlag(activeDebateMatch.homeTeam.name, activeDebateMatch.homeTeam.flag)}
-                  </div>
-                  <span className="text-xs font-bold text-slate-200 block truncate w-full">{activeDebateMatch.homeTeam.name}</span>
-                </div>
-                <div className="w-1/3">
-                  <span className="text-xl font-extrabold font-mono text-white block">{activeDebateMatch.score}</span>
-                  <span className="text-[9px] font-bold text-primary uppercase tracking-wider block mt-1">{translateMatchDetail(activeDebateMatch.detail)}</span>
-                </div>
-                <div className="w-1/3 flex flex-col items-center">
-                  <div className="mb-1 h-8 flex items-center justify-center">
-                    {renderTeamFlag(activeDebateMatch.awayTeam.name, activeDebateMatch.awayTeam.flag)}
-                  </div>
-                  <span className="text-xs font-bold text-slate-200 block truncate w-full">{activeDebateMatch.awayTeam.name}</span>
-                </div>
-              </div>
-
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
-                {t("Débats de la communauté", "Community Debates")}
-              </h4>
-            </div>
-
-            {/* Comment List Area */}
-            <div className="flex-1 overflow-y-auto pr-1 space-y-4 mb-4 scrollbar-none">
-              {comments.filter(c => c.articleId === activeDebateMatch.id).length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-6">
-                  <MessageSquare size={36} className="text-slate-600 mb-2 opacity-50" />
-                  <p className="text-xs font-semibold">{t("Aucun débat pour le moment.", "No debates yet.")}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    {t("Soyez le premier à partager votre avis sur ce match !", "Be the first to share your opinion on this match!")}
-                  </p>
-                </div>
-              ) : (
-                comments
-                  .filter(c => c.articleId === activeDebateMatch.id)
-                  .map(c => (
-                    <div key={c.id} className="portal-item p-3.5 space-y-2 text-xs relative group border border-white/5 rounded-xl bg-white/[0.02]">
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                        <span className="text-slate-200 font-extrabold flex items-center gap-1.5">
-                          {c.author}
-                          {c.authorBadge && (
-                            <span className="bg-primary/20 text-primary border border-primary/20 text-[8px] font-extrabold px-1 rounded uppercase">
-                              {c.authorBadge}
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-slate-500">{c.createdAt}</span>
-                      </div>
-                      <p className="text-slate-300 leading-relaxed font-sans">{c.content}</p>
-                      
-                      {/* Comment actions (likes/report) */}
-                      <div className="flex items-center justify-between pt-2.5 border-t border-white/5 text-[10px] font-bold text-slate-450">
-                        <div className="flex items-center gap-3">
-                          <button 
-                            onClick={() => likeComment(c.id)}
-                            className="hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
-                          >
-                            <span>👍</span> {c.likes}
-                          </button>
-                          <button 
-                            onClick={() => dislikeComment(c.id)}
-                            className="hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
-                          >
-                            <span>👎</span> {c.dislikes}
-                          </button>
-                          {user && user.name !== c.author && (
-                            <button 
-                              onClick={() => handleOpenDuelModal(c.id, c.author)}
-                              className="flex items-center gap-1.5 text-accent hover:underline font-bold transition-colors cursor-pointer"
-                            >
-                              <Swords size={11} /> {t("Défier en duel", "Challenge to duel")}
-                            </button>
-                          )}
-                        </div>
-
-                        {!c.reported ? (
-                          <button 
-                            onClick={() => reportComment(c.id)}
-                            className="hover:text-red-400 text-slate-500 transition-colors cursor-pointer"
-                          >
-                            {t("Signaler", "Report")}
-                          </button>
-                        ) : (
-                          <span className="text-red-400 italic font-semibold">{t("Signalé", "Reported")}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-
-            {/* Input Form */}
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!newCommentText.trim()) return;
-                addComment(activeDebateMatch.id, newCommentText.trim(), null, customAuthorName.trim() || undefined);
-                setNewCommentText("");
-              }}
-              className="space-y-3 pt-4 border-t border-white/10"
-            >
-              {/* Nickname input if visitor */}
-              {!user && (
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">
-                    {t("Votre Pseudo (Optionnel)", "Your Nickname (Optional)")}
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder={t("Ex: Saliou, Abdou...", "Ex: Saliou, Abdou...")}
-                    value={customAuthorName}
-                    onChange={(e) => setCustomAuthorName(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-slate-500 focus:bg-white/10 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                  />
-                </div>
-              )}
-              
-              <div className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">
-                  {t("Votre Opinion", "Your Opinion")}
-                </label>
-                <div className="flex flex-col gap-2">
-                  <textarea 
-                    required
-                    rows={3}
-                    placeholder={t("Partagez votre avis sans limite...", "Share your opinion without limit...")}
-                    value={newCommentText}
-                    onChange={(e) => setNewCommentText(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:bg-white/10 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none"
-                  ></textarea>
-                  <button 
-                    type="submit"
-                    className="w-full bg-primary hover:bg-primary-hover text-white text-xs font-bold uppercase py-2.5 rounded-xl transition-all cursor-pointer shadow-premium"
-                  >
-                    {t("Envoyer l'avis", "Post opinion")}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </>
-      )}
-
-      {/* Duel Challenge Modal */}
-      {showDuelModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#12131C] border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-popover animate-in fade-in zoom-in-95 duration-200 text-slate-200">
-            <div className="bg-slate-950 border-b border-white/10 p-5 flex items-center justify-between">
-              <h3 className="font-serif text-sm font-bold uppercase tracking-wider flex items-center gap-2 text-white">
-                <Swords size={18} className="text-accent animate-pulse" />
-                {t("Lancer un Défi de Duel", "Send Duel Challenge")}
-              </h3>
-              <button 
-                onClick={() => setShowDuelModal(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold cursor-pointer"
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="text-xs text-slate-350 leading-relaxed font-semibold bg-white/5 p-4 rounded-xl border border-white/5">
-                {t("Vous défiez ", "You challenge ")}<span className="text-white font-bold">{duelOpponentName}</span>{t(" en débat 1v1 sur ce match. Il/Elle devra accepter pour démarrer. Les défis non traités expirent après 48h.", " to a 1v1 debate on this match. They must accept to start. Unanswered challenges expire after 48h.")}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  {t("Votre argument d'ouverture (Tour 1)", "Your opening argument (Round 1)")}
-                </label>
-                <textarea
-                  rows={4}
-                  maxLength={500}
-                  placeholder={t("Écrivez votre réplique pour démarrer le duel. Limité à 500 caractères.", "Write your reply to start the duel. Limited to 500 characters.")}
-                  value={duelOpeningText}
-                  onChange={e => setDuelOpeningText(e.target.value)}
-                  className="w-full border border-white/10 rounded-2xl p-4 text-xs sm:text-sm text-white focus:ring-1 focus:ring-primary bg-white/5 focus:bg-white/10 outline-none resize-none font-sans transition-all"
-                ></textarea>
-                <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                  <span>{t("Conseil : Soyez clair et percutant.", "Tip: Be clear and punchy.")}</span>
-                  <span>{duelOpeningText.length}/{500} {t("caractères", "characters")}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-950 px-6 py-4 flex justify-end gap-3 border-t border-white/10">
-              <button
-                onClick={() => setShowDuelModal(false)}
-                className="border border-white/10 text-slate-400 hover:bg-white/5 font-bold px-6 py-2.5 rounded-full text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                {t("Annuler", "Cancel")}
-              </button>
-              <button
-                disabled={!duelOpeningText.trim()}
-                onClick={handleLaunchDuel}
-                className="bg-accent hover:bg-accent-hover disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold px-6 py-2.5 rounded-full text-[10px] uppercase tracking-wider shadow-premium flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                ⚔️ {t("Envoyer le Défi", "Send Challenge")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </div>
