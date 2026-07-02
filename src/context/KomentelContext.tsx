@@ -1082,13 +1082,7 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               }
             }
             
-            // If no session exists, default to our admin user session
-            if (!found) {
-              found = formattedUsers.find((u: any) => u.email.toLowerCase() === "jtech221plus@gmail.com");
-              if (found) {
-                localStorage.setItem("komentel_user_session", JSON.stringify({ email: "jtech221plus@gmail.com" }));
-              }
-            }
+            
             
             if (found) {
               setUser({
@@ -1302,12 +1296,20 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const cleanContent = sanitizeHTML(content);
     const cleanAuthor = sanitizeHTML(user ? user.name : (customAuthor || "Visiteur"));
     const commentId = `comment-${Date.now()}`;
+    const badge = user 
+      ? (user.role === "ADMIN" 
+          ? "Admin" 
+          : (user.role === "JOURNALIST" && user.accredited 
+              ? "Journaliste" 
+              : null)) 
+      : null;
+
     const newComment: Comment = {
       id: commentId,
       articleId,
       parentId,
       author: cleanAuthor,
-      authorBadge: user && user.role === "JOURNALIST" ? "Journaliste" : null,
+      authorBadge: badge,
       content: cleanContent,
       createdAt: "À l'instant",
       likes: 0,
@@ -1324,7 +1326,7 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         article_id: articleId,
         parent_id: parentId,
         author: cleanAuthor,
-        author_badge: user && user.role === "JOURNALIST" ? "Journaliste" : null,
+        author_badge: badge,
         content: cleanContent,
         created_at: "À l'instant",
         likes: 0,
@@ -2974,10 +2976,77 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       )
       .subscribe();
 
+    // 4. Subscribe to registered_users table updates
+    const usersChannel = supabase
+      .channel("public:registered_users")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "registered_users" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const u = payload.new as any;
+            const newUser = {
+              name: u.name,
+              email: u.email,
+              role: u.role,
+              password: u.password,
+              duelsStats: { wins: u.duels_wins, losses: u.duels_losses, ratio: u.duels_ratio },
+              interests: typeof u.interests === "string" ? JSON.parse(u.interests) : u.interests,
+              pressCard: u.press_card,
+              media: u.media,
+              bio: u.bio,
+              photoUrl: u.photo_url,
+              accredited: u.accredited
+            };
+            setRegisteredUsers(prev => {
+              if (prev.some(x => x.email.toLowerCase() === newUser.email.toLowerCase())) return prev;
+              return [...prev, newUser];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            const u = payload.new as any;
+            const updatedUser = {
+              name: u.name,
+              email: u.email,
+              role: u.role,
+              password: u.password,
+              duelsStats: { wins: u.duels_wins, losses: u.duels_losses, ratio: u.duels_ratio },
+              interests: typeof u.interests === "string" ? JSON.parse(u.interests) : u.interests,
+              pressCard: u.press_card,
+              media: u.media,
+              bio: u.bio,
+              photoUrl: u.photo_url,
+              accredited: u.accredited
+            };
+            setRegisteredUsers(prev => prev.map(x => x.email.toLowerCase() === updatedUser.email.toLowerCase() ? updatedUser : x));
+            
+            // Sync with current session user
+            setUser(currentUser => {
+              if (currentUser && currentUser.email.toLowerCase() === updatedUser.email.toLowerCase()) {
+                return {
+                  ...currentUser,
+                  name: updatedUser.name,
+                  role: updatedUser.role,
+                  duelsStats: updatedUser.duelsStats,
+                  interests: updatedUser.interests,
+                  pressCard: updatedUser.pressCard,
+                  media: updatedUser.media,
+                  bio: updatedUser.bio,
+                  photoUrl: updatedUser.photoUrl,
+                  accredited: updatedUser.accredited
+                };
+              }
+              return currentUser;
+            });
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(pollsChannel);
       supabase.removeChannel(duelsChannel);
       supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(usersChannel);
     };
   }, []);
 
