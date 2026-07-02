@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useKomentel } from "@/context/KomentelContext";
+import { useKomentel, decodeHTML } from "@/context/KomentelContext";
 import { useParams, useRouter } from "next/navigation";
 import { CheckCircle2, ChevronRight, MessageSquare, Clock, Eye, AlertTriangle, Send, Swords, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -21,6 +21,16 @@ export default function ArticlePage() {
     reportComment, 
     likeComment,
     dislikeComment,
+    challengeToDuel,
+    challengeArticleToDuel,
+    acceptDuel,
+    postDuelReply,
+    voteDuelReply,
+    followDuel,
+    unfollowDuel,
+    isFollowingDuel,
+    duels,
+    commentReactions,
     language
   } = useKomentel();
 
@@ -45,7 +55,15 @@ export default function ArticlePage() {
   const [newCommentText, setNewCommentText] = useState("");
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [debateTargetId, setDebateTargetId] = useState<string | null>(null);
+  const [debateText, setDebateText] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
+  
+  // States for article-level debates
+  const [openingArgumentText, setOpeningArgumentText] = useState("");
+  const [showStartDebateForm, setShowStartDebateForm] = useState(false);
+  const [duelReplyText, setDuelReplyText] = useState("");
+  const [votedReplies, setVotedReplies] = useState<Record<string, 'like' | 'dislike'>>({});
   
 
 
@@ -115,6 +133,50 @@ export default function ArticlePage() {
     addComment(id, replyText, parentId);
     setReplyText("");
     setReplyTargetId(null);
+  };
+
+  const handleCreateDebate = async (commentId: string, authorName: string) => {
+    if (!user) {
+      alert(t("Vous devez être connecté pour lancer un débat.", "You must be logged in to start a debate."));
+      router.push(`/login?redirect=/article/${id}`);
+      return;
+    }
+    if (!debateText.trim()) return;
+    const duelId = await challengeToDuel(id, commentId, authorName, debateText);
+    setDebateText("");
+    setDebateTargetId(null);
+    if (duelId) {
+      router.push(`/duel/${duelId}`);
+    }
+  };
+
+  const handleStartArticleDebate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      alert(t("Vous devez être connecté pour lancer un débat.", "You must be logged in to start a debate."));
+      router.push(`/login?redirect=/article/${id}`);
+      return;
+    }
+    if (!openingArgumentText.trim()) return;
+    await challengeArticleToDuel(id, openingArgumentText);
+    setOpeningArgumentText("");
+    setShowStartDebateForm(false);
+  };
+
+  const handleVoteReplyClick = (duelId: string, roundIdx: number, side: 'challenger' | 'defender', type: 'like' | 'dislike') => {
+    if (!user) {
+      alert(t("Veuillez vous connecter pour voter.", "Please log in to vote."));
+      return;
+    }
+    const key = `${duelId}-${roundIdx}-${side}`;
+    if (votedReplies[key]) return;
+
+    voteDuelReply(duelId, roundIdx, side, type);
+
+    setVotedReplies(prev => ({
+      ...prev,
+      [key]: type
+    }));
   };
 
 
@@ -352,20 +414,385 @@ export default function ArticlePage() {
                       <span className="text-[10px] text-slate-500">{topComment.createdAt}</span>
                     </div>
                     <p className="text-sm text-slate-300 leading-relaxed font-sans">
-                      {topComment.content}
+                      {decodeHTML(topComment.content)}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-4 mt-4 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-t border-white/5 pt-3">
                   <button 
                     onClick={() => likeComment(topComment.id)}
-                    className="flex items-center gap-1 hover:text-slate-300 transition-colors text-slate-400"
+                    className={`flex items-center gap-1 transition-colors ${commentReactions[topComment.id] === 'like' ? "text-blue-500 font-bold" : "text-slate-400 hover:text-slate-350"}`}
                   >
                     <ThumbsUp size={12} /> {topComment.likes}
                   </button>
                 </div>
               </div>
             )}
+
+
+            {/* Débat Citoyen Section */}
+            {(() => {
+              const articleDuel = duels.find(d => d.articleId === id);
+              if (!articleDuel) {
+                return (
+                  <div className="bg-[#12131C]/60 backdrop-blur-md rounded-2xl border border-white/10 p-6 sm:p-8 shadow-premium space-y-4">
+                    <div className="flex items-center gap-2 border-l-4 border-amber-500 pl-3">
+                      <h3 className="font-serif text-sm font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
+                        <Swords size={16} className="text-amber-500" />
+                        {t("Débats & Opinions", "Debates & Opinions")}
+                      </h3>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-400">
+                      {t("Aucun débat en cours sur cet article. Lancez le premier défi d'opinion !", "No debates active on this article. Launch the first opinion challenge!")}
+                    </p>
+                    {user ? (
+                      <div>
+                        {!showStartDebateForm ? (
+                          <button
+                            onClick={() => setShowStartDebateForm(true)}
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-5 rounded-xl text-xs uppercase tracking-wider shadow transition-all cursor-pointer"
+                          >
+                            ⚔️ {t("Lancer un débat", "Start a Debate")}
+                          </button>
+                        ) : (
+                          <form onSubmit={handleStartArticleDebate} className="mt-4 space-y-3 border-t border-white/5 pt-4">
+                            <label className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">
+                              {t("Votre argument d'ouverture :", "Your opening argument:")}
+                            </label>
+                            <textarea
+                              rows={3}
+                              maxLength={500}
+                              placeholder={t("Présentez votre thèse ou contestation de manière constructive... (max 500 caract.)", "Present your thesis or contestation constructively... (max 500 char.)")}
+                              value={openingArgumentText}
+                              onChange={e => setOpeningArgumentText(e.target.value)}
+                              className="w-full border border-amber-500/20 rounded-xl p-3 text-xs sm:text-sm text-white focus:ring-1 focus:ring-amber-500 bg-white/5 focus:bg-white/10 outline-none resize-none transition-all font-sans"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                type="submit"
+                                className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-xl text-xs font-bold shadow cursor-pointer"
+                              >
+                                {t("Lancer", "Start")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setShowStartDebateForm(false); setOpeningArgumentText(""); }}
+                                className="border border-white/10 text-slate-400 px-5 py-2 rounded-xl text-xs hover:bg-white/5 cursor-pointer"
+                              >
+                                {t("Annuler", "Cancel")}
+                              </button>
+                            </div>
+                          </form>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="pt-2">
+                        <Link
+                          href={`/login?redirect=/article/${id}`}
+                          className="bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 text-amber-400 font-bold py-2 px-5 rounded-xl text-xs uppercase tracking-wider transition-all inline-block"
+                        >
+                          🔑 {t("Se connecter pour débattre", "Log in to Debate")}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // A duel exists!
+              let chScore = 0;
+              let defScore = 0;
+              articleDuel.rounds.forEach(r => {
+                if (r.challengerReply) chScore += (r.challengerLikes - r.challengerDislikes);
+                if (r.defenderReply) defScore += (r.defenderLikes - r.defenderDislikes);
+              });
+
+              const isCh = user !== null && user.name === articleDuel.challenger;
+              const isDef = user !== null && user.name === articleDuel.defender;
+              const isPart = isCh || isDef;
+              const isSpec = !isPart;
+
+              const isTurn = 
+                articleDuel.status === "ACTIVE" && 
+                ((articleDuel.currentTurn === "CHALLENGER" && isCh) ||
+                 (articleDuel.currentTurn === "DEFENDER" && isDef));
+
+              const hVoted = (roundIdx: number, side: 'challenger' | 'defender') => {
+                return votedReplies[`${articleDuel.id}-${roundIdx}-${side}`] !== undefined;
+              };
+
+              const getVType = (roundIdx: number, side: 'challenger' | 'defender') => {
+                return votedReplies[`${articleDuel.id}-${roundIdx}-${side}`];
+              };
+
+              return (
+                <div className="bg-[#12131C]/60 backdrop-blur-md rounded-2xl border border-white/10 p-6 sm:p-8 shadow-premium space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                        articleDuel.status === "ACTIVE" 
+                          ? "bg-accent/15 text-accent border border-accent/20 animate-pulse" 
+                          : articleDuel.status === "CLOSED" 
+                            ? "bg-slate-800 text-slate-400 border border-white/5"
+                            : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                      }`}>
+                        ⚔️ {articleDuel.status === "ACTIVE" ? t("Débat en cours", "Active Debate") : articleDuel.status === "CLOSED" ? t("Débat clos", "Closed Debate") : t("Défi lancé", "Challenge Pending")}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                        {articleDuel.status === "CLOSED" ? t("Verdict final", "Final verdict") : articleDuel.closesAt}
+                      </span>
+                      {user && (
+                        <button
+                          onClick={() => isFollowingDuel(articleDuel.id) ? unfollowDuel(articleDuel.id) : followDuel(articleDuel.id)}
+                          className={`text-[9px] font-extrabold py-0.5 px-2.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 uppercase tracking-wider ml-2 ${
+                            isFollowingDuel(articleDuel.id)
+                              ? "bg-green-600/20 text-green-400 border-green-500/30 shadow-[0_0_8px_rgba(34,197,94,0.1)]"
+                              : "bg-white/5 border border-white/10 text-slate-450 hover:text-white hover:bg-white/10"
+                          }`}
+                        >
+                          <span>🔔</span>
+                          <span>{isFollowingDuel(articleDuel.id) ? t("Suivi", "Followed") : t("Suivre le débat", "Follow")}</span>
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Scoreboard */}
+                    <div className="flex items-center gap-4 text-xs font-bold">
+                      <span className="text-primary">{articleDuel.challenger} ({chScore > 0 ? `+${chScore}` : chScore})</span>
+                      <span className="text-slate-500">VS</span>
+                      <span className="text-accent">{articleDuel.defender} ({defScore > 0 ? `+${defScore}` : defScore})</span>
+                    </div>
+                  </div>
+
+                  {/* Rounds list */}
+                  <div className="space-y-6">
+                    {articleDuel.rounds.map((round, idx) => {
+                      const hasCh = round.challengerReply !== null;
+                      const hasDef = round.defenderReply !== null;
+
+                      if (!hasCh && !hasDef) return null;
+
+                      return (
+                        <div key={idx} className="space-y-4">
+                          <div className="text-center">
+                            <span className="inline-block bg-white/5 border border-white/5 text-slate-500 text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">
+                              {t("Tour", "Round")} {round.turn} / {articleDuel.roundLimit}
+                            </span>
+                          </div>
+
+                          {/* Challenger argument */}
+                          {hasCh && (
+                            <div className="flex gap-2 max-w-[85%]">
+                              <div className="w-6 h-6 rounded-full bg-primary/20 text-white flex items-center justify-center font-bold text-[10px] uppercase shrink-0 border border-primary/30">
+                                {articleDuel.challenger.slice(0, 2)}
+                              </div>
+                              <div className="space-y-1 flex-1">
+                                <div className="bg-primary/5 border border-primary/10 rounded-2xl rounded-tl-none p-4 shadow-sm text-slate-200 text-xs sm:text-sm font-sans leading-relaxed">
+                                  <p className="font-bold text-[9px] text-primary uppercase tracking-wider mb-1">{articleDuel.challenger}</p>
+                                  {decodeHTML(round.challengerReply || "")}
+                                </div>
+                                
+                                {/* Spec Voting */}
+                                <div className="flex items-center gap-2.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 pl-1">
+                                  {isSpec ? (
+                                    <>
+                                      <button 
+                                        disabled={hVoted(idx, 'challenger')}
+                                        onClick={() => handleVoteReplyClick(articleDuel.id, idx, 'challenger', 'like')}
+                                        className={`flex items-center gap-1 transition-colors rounded-full px-2 py-0.5 cursor-pointer ${
+                                          getVType(idx, 'challenger') === 'like'
+                                            ? "bg-blue-600 text-white border border-blue-500"
+                                            : "text-slate-400 hover:text-white bg-white/5 border border-white/5"
+                                        }`}
+                                      >
+                                        <ThumbsUp size={10} /> {round.challengerLikes}
+                                      </button>
+                                      <button 
+                                        disabled={hVoted(idx, 'challenger')}
+                                        onClick={() => handleVoteReplyClick(articleDuel.id, idx, 'challenger', 'dislike')}
+                                        className={`flex items-center gap-1 transition-colors rounded-full px-2 py-0.5 cursor-pointer ${
+                                          getVType(idx, 'challenger') === 'dislike'
+                                            ? "bg-red-600 text-white border border-red-500"
+                                            : "text-slate-400 hover:text-red-400 bg-white/5 border border-white/5"
+                                        }`}
+                                      >
+                                        <ThumbsDown size={10} /> {round.challengerDislikes}
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div className="flex items-center gap-2 text-slate-400 bg-white/5 rounded-full px-2 py-0.5">
+                                      <span className="flex items-center gap-0.5"><ThumbsUp size={9} /> {round.challengerLikes}</span>
+                                      <span className="flex items-center gap-0.5"><ThumbsDown size={9} /> {round.challengerDislikes}</span>
+                                    </div>
+                                  )}
+                                  <span className="ml-auto text-[8px] text-slate-550">
+                                    Score Net: {round.challengerLikes - round.challengerDislikes}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Defender argument */}
+                          {hasDef && (
+                            <div className="flex gap-2 max-w-[85%] ml-auto justify-end">
+                              <div className="space-y-1 text-right order-1 flex-1">
+                                <div className="bg-accent/5 border border-accent/10 rounded-2xl rounded-tr-none p-4 shadow-sm text-slate-200 text-xs sm:text-sm font-sans leading-relaxed text-left">
+                                  <p className="font-bold text-[9px] text-accent uppercase tracking-wider mb-1 text-right">{articleDuel.defender}</p>
+                                  {decodeHTML(round.defenderReply || "")}
+                                </div>
+                                
+                                {/* Spec Voting */}
+                                <div className="flex items-center justify-end gap-2.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 pr-1">
+                                  {isSpec ? (
+                                    <>
+                                      <button 
+                                        disabled={hVoted(idx, 'defender')}
+                                        onClick={() => handleVoteReplyClick(articleDuel.id, idx, 'defender', 'like')}
+                                        className={`flex items-center gap-1 transition-colors rounded-full px-2 py-0.5 cursor-pointer ${
+                                          getVType(idx, 'defender') === 'like'
+                                            ? "bg-blue-600 text-white border border-blue-500"
+                                            : "text-slate-400 hover:text-white bg-white/5 border border-white/5"
+                                        }`}
+                                      >
+                                        <ThumbsUp size={10} /> {round.defenderLikes}
+                                      </button>
+                                      <button 
+                                        disabled={hVoted(idx, 'defender')}
+                                        onClick={() => handleVoteReplyClick(articleDuel.id, idx, 'defender', 'dislike')}
+                                        className={`flex items-center gap-1 transition-colors rounded-full px-2 py-0.5 cursor-pointer ${
+                                          getVType(idx, 'defender') === 'dislike'
+                                            ? "bg-red-600 text-white border border-red-500"
+                                            : "text-slate-400 hover:text-red-400 bg-white/5 border border-white/5"
+                                        }`}
+                                      >
+                                        <ThumbsDown size={10} /> {round.defenderDislikes}
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div className="flex items-center gap-2 text-slate-400 bg-white/5 rounded-full px-2 py-0.5">
+                                      <span className="flex items-center gap-0.5"><ThumbsUp size={9} /> {round.defenderLikes}</span>
+                                      <span className="flex items-center gap-0.5"><ThumbsDown size={9} /> {round.defenderDislikes}</span>
+                                    </div>
+                                  )}
+                                  <span className="ml-3 text-[8px] text-slate-550">
+                                    Score Net: {round.defenderLikes - round.defenderDislikes}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-6 h-6 rounded-full bg-accent/20 text-white flex items-center justify-center font-bold text-[10px] uppercase shrink-0 order-2 border border-accent/30">
+                                {articleDuel.defender.slice(0, 2)}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Actions for players */}
+                  {articleDuel.status === "PENDING" && (
+                    <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center">
+                      <p className="text-xs text-slate-400">
+                        {articleDuel.defender === "En attente" 
+                          ? t("Ce débat attend un contradicteur pour démarrer.", "This debate is waiting for a contradicter to start.")
+                          : t("En attente d'acceptation du défi...", "Waiting for challenge acceptance...")}
+                      </p>
+                      {articleDuel.defender === "En attente" && !isCh && (
+                        user ? (
+                          <button
+                            onClick={() => acceptDuel(articleDuel.id)}
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-6 rounded-full text-[10px] uppercase tracking-wider mt-3 shadow cursor-pointer"
+                          >
+                            🤝 {t("Rejoindre le débat", "Join the Debate")}
+                          </button>
+                        ) : (
+                          <Link
+                            href={`/login?redirect=/article/${id}`}
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-6 rounded-full text-[10px] uppercase tracking-wider mt-3 shadow inline-block"
+                          >
+                            🔑 {t("Se connecter pour rejoindre", "Log in to Join")}
+                          </Link>
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {articleDuel.status === "ACTIVE" && (
+                    <div className="border-t border-white/5 pt-4">
+                      {isPart ? (
+                        isTurn ? (
+                          <form 
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              if (!duelReplyText.trim()) return;
+                              postDuelReply(articleDuel.id, duelReplyText);
+                              setDuelReplyText("");
+                            }}
+                            className="space-y-2"
+                          >
+                            <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
+                              {t("Écrire votre réplique :", "Write your reply:")}
+                            </label>
+                            <div className="flex gap-2">
+                              <textarea
+                                rows={2}
+                                maxLength={500}
+                                placeholder={t("Saisissez votre argument contradictoire...", "Enter your contradictory argument...")}
+                                value={duelReplyText}
+                                onChange={e => setDuelReplyText(e.target.value)}
+                                className="flex-1 border border-white/10 bg-white/5 focus:bg-white/10 text-white rounded-xl p-3 text-xs focus:ring-1 focus:ring-primary outline-none resize-none transition-all font-sans"
+                              />
+                              <button
+                                type="submit"
+                                disabled={!duelReplyText.trim()}
+                                className="bg-amber-500 hover:bg-amber-600 disabled:bg-slate-800 disabled:text-slate-500 text-white px-4 rounded-xl flex items-center justify-center shadow h-10 transition-colors self-end cursor-pointer"
+                              >
+                                <Send size={14} />
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center text-xs font-semibold text-slate-400">
+                            📢 {t("C'est au tour de", "It is the turn of")}{" "}
+                            <span className="text-white font-bold">{articleDuel.currentTurn === "CHALLENGER" ? articleDuel.challenger : articleDuel.defender}</span>{" "}
+                            {t("de répliquer.", "to reply.")}
+                          </div>
+                        )
+                      ) : (
+                        <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 text-center text-xs text-slate-400">
+                          📣 {t("Vous observez ce débat en tant que spectateur. Votez sur les arguments ci-dessus pour exprimer votre opinion !", "You are observing this debate as a spectator. Vote on the arguments above to express your opinion!")}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {articleDuel.status === "CLOSED" && (
+                    <div className="bg-gradient-to-r from-primary/10 to-accent/10 border border-white/10 rounded-xl p-5 text-center shadow">
+                      <span className="text-xl">🏆</span>
+                      <h4 className="font-serif font-bold text-white text-sm mt-1">{t("Débat Terminé", "Debate Completed")}</h4>
+                      <p className="text-xs text-slate-300 mt-2">
+                        {chScore > defScore ? (
+                          <>
+                            {t("Le public a désigné", "The public designated")}{" "}
+                            <span className="font-extrabold text-primary">{articleDuel.challenger}</span>{" "}
+                            {t("comme vainqueur de cette confrontation d'idées !", "as the winner of this confrontation of ideas!")}
+                          </>
+                        ) : defScore > chScore ? (
+                          <>
+                            {t("Le public a désigné", "The public designated")}{" "}
+                            <span className="font-extrabold text-accent">{articleDuel.defender}</span>{" "}
+                            {t("comme vainqueur de cette confrontation d'idées !", "as the winner of this confrontation of ideas!")}
+                          </>
+                        ) : (
+                          t("Ce débat s'est terminé par un match nul !", "This debate ended in a draw!")
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Structured Comments Section */}
             <section id="comments" className="bg-[#12131C]/60 backdrop-blur-md rounded-2xl border border-white/10 p-6 sm:p-8 shadow-premium space-y-6">
@@ -401,6 +828,7 @@ export default function ArticlePage() {
                     ) : (
                       rootComments.map(c => {
                         const childComments = articleComments.filter(child => child.parentId === c.id);
+                        const hasDebate = duels.some(d => d.commentId === c.id);
                         return (
                           <div key={c.id} className="space-y-4 border-b border-white/5 pb-4 last:border-0 last:pb-0">
                             {/* Root Comment Row */}
@@ -418,24 +846,50 @@ export default function ArticlePage() {
                                   )}
                                   <span className="text-[10px] text-slate-500">{c.createdAt}</span>
                                 </div>
-                                <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">{c.content}</p>
+                                <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">{decodeHTML(c.content)}</p>
                                 
                                 {/* Action Bar */}
                                 <div className="flex items-center gap-4 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                   <button 
                                     onClick={() => likeComment(c.id)}
-                                    className="flex items-center gap-1 hover:text-slate-300 transition-colors"
+                                    className={`flex items-center gap-1 transition-colors ${commentReactions[c.id] === 'like' ? "text-blue-500 font-bold" : "hover:text-slate-300"}`}
                                   >
                                     <ThumbsUp size={11} /> {c.likes}
                                   </button>
                                   <button 
                                     onClick={() => dislikeComment(c.id)}
-                                    className="flex items-center gap-1 hover:text-slate-300 transition-colors"
+                                    className={`flex items-center gap-1 transition-colors ${commentReactions[c.id] === 'dislike' ? "text-red-500 font-bold" : "hover:text-slate-300"}`}
                                   >
                                     <ThumbsDown size={11} /> {c.dislikes}
                                   </button>
-                                  <button onClick={() => setReplyTargetId(c.id)} className="hover:text-white transition-colors">{t("Répondre", "Reply")}</button>
+                                  <button onClick={() => { setReplyTargetId(c.id); setDebateTargetId(null); }} className="hover:text-white transition-colors">{t("Répondre", "Reply")}</button>
                                   <button onClick={() => reportComment(c.id)} className="hover:text-red-400 font-medium transition-colors">{t("Signaler", "Report")}</button>
+                                  {(!user || user.name !== c.author) && (
+                                    hasDebate ? (
+                                      <button 
+                                        disabled
+                                        className="opacity-30 cursor-not-allowed flex items-center gap-1 text-amber-500/50 font-medium transition-colors select-none"
+                                        title={t("Un débat est déjà en cours pour ce commentaire.", "A debate is already in progress for this comment.")}
+                                      >
+                                        <Swords size={11} className="opacity-50" /> {t("Débat en cours", "Debating")}
+                                      </button>
+                                    ) : (
+                                      <button 
+                                        onClick={() => {
+                                          if (!user) {
+                                            alert(t("Vous devez être connecté pour lancer un débat.", "You must be logged in to start a debate."));
+                                            router.push(`/login?redirect=/article/${id}`);
+                                            return;
+                                          }
+                                          setDebateTargetId(c.id);
+                                          setReplyTargetId(null);
+                                        }} 
+                                        className="hover:text-amber-400 font-medium transition-colors flex items-center gap-1"
+                                      >
+                                        <Swords size={11} /> {t("Débat", "Debate")}
+                                      </button>
+                                    )
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -465,35 +919,125 @@ export default function ArticlePage() {
                               </div>
                             )}
 
+                              {/* Debate Input Box */}
+                              {debateTargetId === c.id && (
+                                <div className="pl-11 flex flex-col gap-2 mt-2 animate-in slide-in-from-top-2 duration-200">
+                                  <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <Swords size={12} />
+                                    {t(`Lancer un débat avec ${c.author}...`, `Launch a debate with ${c.author}...`)}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder={t("Entrez votre argument d'ouverture...", "Enter your opening argument...")}
+                                      value={debateText}
+                                      onChange={e => setDebateText(e.target.value)}
+                                      className="flex-1 border border-amber-500/20 rounded-xl p-2 text-xs text-white focus:ring-1 focus:ring-amber-500 bg-white/5 focus:bg-white/10 outline-none transition-all"
+                                    />
+                                    <button
+                                      onClick={() => handleCreateDebate(c.id, c.author)}
+                                      className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm"
+                                    >
+                                      {t("Lancer", "Start")}
+                                    </button>
+                                    <button
+                                      onClick={() => { setDebateTargetId(null); setDebateText(""); }}
+                                      className="border border-white/10 text-slate-400 px-4 py-1.5 rounded-xl text-xs hover:bg-white/5"
+                                    >
+                                      {t("Annuler", "Cancel")}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
                             {/* Nested Replies */}
                             {childComments.length > 0 && (
                               <div className="pl-10 space-y-4 border-l border-white/10 ml-4 pt-2">
                                 {childComments.map(child => (
-                                  <div key={child.id} className="flex gap-3">
-                                    <div className="w-6 h-6 rounded-full bg-slate-900 flex items-center justify-center font-bold text-[9px] uppercase text-slate-400 border border-white/10 shadow-sm shrink-0">
-                                      {child.author.slice(0, 2)}
-                                    </div>
-                                    <div className="flex-1 space-y-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold text-slate-200">{child.author}</span>
-                                        {child.authorBadge && (
-                                          <span className="bg-accent/20 border border-accent/20 text-accent text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
-                                            {child.authorBadge}
-                                          </span>
-                                        )}
-                                        <span className="text-[10px] text-slate-500">{child.createdAt}</span>
+                                  <div key={child.id} className="space-y-2">
+                                    <div className="flex gap-3">
+                                      <div className="w-6 h-6 rounded-full bg-slate-900 flex items-center justify-center font-bold text-[9px] uppercase text-slate-400 border border-white/10 shadow-sm shrink-0">
+                                        {child.author.slice(0, 2)}
                                       </div>
-                                      <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">{child.content}</p>
-                                      <div className="flex items-center gap-4 pt-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                                        <button 
-                                          onClick={() => likeComment(child.id)}
-                                          className="flex items-center gap-1 hover:text-slate-300 transition-colors"
-                                        >
-                                          <ThumbsUp size={10} /> {child.likes}
-                                        </button>
-                                        <button onClick={() => reportComment(child.id)} className="hover:text-red-400 font-medium transition-colors">{t("Signaler", "Report")}</button>
+                                      <div className="flex-1 space-y-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs font-bold text-slate-200">{child.author}</span>
+                                          {child.authorBadge && (
+                                            <span className="bg-accent/20 border border-accent/20 text-accent text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
+                                              {child.authorBadge}
+                                            </span>
+                                          )}
+                                          <span className="text-[10px] text-slate-500">{child.createdAt}</span>
+                                        </div>
+                                        <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">{decodeHTML(child.content)}</p>
+                                        <div className="flex items-center gap-4 pt-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                                          <button 
+                                            onClick={() => likeComment(child.id)}
+                                            className={`flex items-center gap-1 transition-colors ${commentReactions[child.id] === 'like' ? "text-blue-500 font-bold" : "hover:text-slate-300"}`}
+                                          >
+                                            <ThumbsUp size={10} /> {child.likes}
+                                          </button>
+                                          <button onClick={() => reportComment(child.id)} className="hover:text-red-400 font-medium transition-colors">{t("Signaler", "Report")}</button>
+                                          {(!user || user.name !== child.author) && (
+                                            duels.some(d => d.commentId === child.id) ? (
+                                              <button 
+                                                disabled
+                                                className="opacity-30 cursor-not-allowed flex items-center gap-1 text-amber-500/50 font-medium transition-colors select-none"
+                                                title={t("Un débat est déjà en cours pour ce commentaire.", "A debate is already in progress for this comment.")}
+                                              >
+                                                <Swords size={10} className="opacity-50" /> {t("Débat en cours", "Debating")}
+                                              </button>
+                                            ) : (
+                                              <button 
+                                                onClick={() => {
+                                                  if (!user) {
+                                                    alert(t("Vous devez être connecté pour lancer un débat.", "You must be logged in to start a debate."));
+                                                    router.push(`/login?redirect=/article/${id}`);
+                                                    return;
+                                                  }
+                                                  setDebateTargetId(child.id);
+                                                  setReplyTargetId(null);
+                                                }} 
+                                                className="hover:text-amber-400 font-medium transition-colors flex items-center gap-1"
+                                              >
+                                                <Swords size={10} /> {t("Débat", "Debate")}
+                                              </button>
+                                            )
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
+
+                                    {/* Child Debate Input Box */}
+                                    {debateTargetId === child.id && (
+                                      <div className="pl-9 flex flex-col gap-2 mt-1 animate-in slide-in-from-top-1 duration-200">
+                                        <div className="text-[9px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                          <Swords size={10} />
+                                          {t(`Lancer un débat avec ${child.author}...`, `Launch a debate with ${child.author}...`)}
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <input
+                                            type="text"
+                                            placeholder={t("Entrez votre argument d'ouverture...", "Enter your opening argument...")}
+                                            value={debateText}
+                                            onChange={e => setDebateText(e.target.value)}
+                                            className="flex-1 border border-amber-500/20 rounded-xl p-1.5 text-xs text-white focus:ring-1 focus:ring-amber-500 bg-white/5 focus:bg-white/10 outline-none transition-all"
+                                          />
+                                          <button
+                                            onClick={() => handleCreateDebate(child.id, child.author)}
+                                            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-xl text-[10px] font-bold shadow-sm"
+                                          >
+                                            {t("Lancer", "Start")}
+                                          </button>
+                                          <button
+                                            onClick={() => { setDebateTargetId(null); setDebateText(""); }}
+                                            className="border border-white/10 text-slate-400 px-3 py-1 rounded-xl text-[10px] hover:bg-white/5"
+                                          >
+                                            {t("Annuler", "Cancel")}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>

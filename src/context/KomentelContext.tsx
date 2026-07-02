@@ -181,6 +181,7 @@ interface KomentelContextType {
   loginUser: (email: string, password?: string) => Promise<boolean>;
   logoutUser: () => void;
   completeOnboarding: (details: { interests?: string[]; pressCard?: string; media?: string; bio?: string; photoUrl?: string }) => void;
+  updateInterests: (interests: string[]) => Promise<void>;
   accreditJournalist: (email: string) => Promise<void>;
   votedAt: number | null;
   votePoll: (optionIndex: number) => void;
@@ -189,10 +190,15 @@ interface KomentelContextType {
   reportComment: (commentId: string) => void;
   likeComment: (commentId: string) => void;
   dislikeComment: (commentId: string) => void;
-  challengeToDuel: (articleId: string, commentId: string, opponentName: string, promptText?: string) => void;
+  challengeToDuel: (articleId: string, commentId: string, opponentName: string, promptText?: string) => Promise<string | undefined>;
+  challengeArticleToDuel: (articleId: string, openingArgument: string) => Promise<string | undefined>;
   acceptDuel: (duelId: string) => void;
   postDuelReply: (duelId: string, text: string) => void;
   voteDuelReply: (duelId: string, roundIndex: number, side: 'challenger' | 'defender', type: 'like' | 'dislike') => void;
+  followedDuels: string[];
+  followDuel: (duelId: string) => void;
+  unfollowDuel: (duelId: string) => void;
+  isFollowingDuel: (duelId: string) => boolean;
   addArticle: (title: string, category: string, summary: string, paragraphs: string[], imageUrl?: string, authorName?: string, additionalImages?: string[], videoUrl?: string, continent?: string) => void;
   updateArticleCorrection: (articleId: string, correctionText: string) => void;
   reactToArticle: (articleId: string, reactionType: keyof ArticleReactions) => void;
@@ -220,6 +226,7 @@ interface KomentelContextType {
   refreshMatches: () => Promise<void>;
   resetSimulatedMatches: () => void;
   refreshArticles: () => Promise<void>;
+  commentReactions: Record<string, 'like' | 'dislike'>;
 }
 
 const KomentelContext = createContext<KomentelContextType | undefined>(undefined);
@@ -334,6 +341,18 @@ const sanitizeHTML = (str: string): string => {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#x27;")
     .replace(/\//g, "&#x2F;");
+};
+
+export const decodeHTML = (str: string): string => {
+  if (!str) return "";
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/")
+    .replace(/&#39;/g, "'");
 };
 
 const sanitizeUrl = (url?: string): string => {
@@ -493,8 +512,14 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Poll Voted At Timestamp
   const [votedAt, setVotedAt] = useState<number | null>(null);
 
-  // Registered users list simulating local DB
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+
+  // Followed duels/debates list
+  const [followedDuels, setFollowedDuels] = useState<string[]>([]);
+  const followedDuelsRef = React.useRef<string[]>([]);
+  React.useEffect(() => {
+    followedDuelsRef.current = followedDuels;
+  }, [followedDuels]);
 
   const registerUser = async (name: string, email: string, role: 'USER' | 'JOURNALIST' | 'ADMIN' = 'USER', password?: string) => {
     const cleanName = sanitizeHTML(name);
@@ -960,6 +985,22 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // 6. Initial Notifications
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
+  // Comment reactions state
+  const [commentReactions, setCommentReactions] = useState<Record<string, 'like' | 'dislike'>>({});
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("komentel_comment_reactions");
+      if (saved) {
+        try {
+          setCommentReactions(JSON.parse(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const loadFullstackData = async () => {
       try {
@@ -1313,11 +1354,47 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const likeComment = async (commentId: string) => {
-    setComments(prev => prev.map(c => c.id === commentId ? { ...c, likes: c.likes + 1 } : c));
+    const currentReaction = commentReactions[commentId];
+    let likesDiff = 0;
+    let dislikesDiff = 0;
+    const updatedReactions = { ...commentReactions };
+
+    if (currentReaction === 'like') {
+      delete updatedReactions[commentId];
+      likesDiff = -1;
+    } else if (currentReaction === 'dislike') {
+      updatedReactions[commentId] = 'like';
+      likesDiff = 1;
+      dislikesDiff = -1;
+    } else {
+      updatedReactions[commentId] = 'like';
+      likesDiff = 1;
+    }
+
+    setCommentReactions(updatedReactions);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("komentel_comment_reactions", JSON.stringify(updatedReactions));
+    }
+
+    setComments(prev => prev.map(c => {
+      if (c.id !== commentId) return c;
+      return {
+        ...c,
+        likes: Math.max(0, c.likes + likesDiff),
+        dislikes: Math.max(0, c.dislikes + dislikesDiff)
+      };
+    }));
+
     try {
       const foundComment = comments.find(c => c.id === commentId);
       if (foundComment) {
-        await supabase.from("comments").update({ likes: foundComment.likes + 1 }).eq("id", commentId);
+        await supabase
+          .from("comments")
+          .update({
+            likes: Math.max(0, foundComment.likes + likesDiff),
+            dislikes: Math.max(0, foundComment.dislikes + dislikesDiff)
+          })
+          .eq("id", commentId);
       }
     } catch (e) {
       console.error(e);
@@ -1325,19 +1402,55 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const dislikeComment = async (commentId: string) => {
-    setComments(prev => prev.map(c => c.id === commentId ? { ...c, dislikes: c.dislikes + 1 } : c));
+    const currentReaction = commentReactions[commentId];
+    let likesDiff = 0;
+    let dislikesDiff = 0;
+    const updatedReactions = { ...commentReactions };
+
+    if (currentReaction === 'dislike') {
+      delete updatedReactions[commentId];
+      dislikesDiff = -1;
+    } else if (currentReaction === 'like') {
+      updatedReactions[commentId] = 'dislike';
+      likesDiff = -1;
+      dislikesDiff = 1;
+    } else {
+      updatedReactions[commentId] = 'dislike';
+      dislikesDiff = 1;
+    }
+
+    setCommentReactions(updatedReactions);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("komentel_comment_reactions", JSON.stringify(updatedReactions));
+    }
+
+    setComments(prev => prev.map(c => {
+      if (c.id !== commentId) return c;
+      return {
+        ...c,
+        likes: Math.max(0, c.likes + likesDiff),
+        dislikes: Math.max(0, c.dislikes + dislikesDiff)
+      };
+    }));
+
     try {
       const foundComment = comments.find(c => c.id === commentId);
       if (foundComment) {
-        await supabase.from("comments").update({ dislikes: foundComment.dislikes + 1 }).eq("id", commentId);
+        await supabase
+          .from("comments")
+          .update({
+            likes: Math.max(0, foundComment.likes + likesDiff),
+            dislikes: Math.max(0, foundComment.dislikes + dislikesDiff)
+          })
+          .eq("id", commentId);
       }
     } catch (e) {
       console.error(e);
     }
   };
 
-  const challengeToDuel = async (articleId: string, commentId: string, opponentName: string, promptText?: string) => {
-    if (!user) return;
+  const challengeToDuel = async (articleId: string, commentId: string, opponentName: string, promptText?: string): Promise<string | undefined> => {
+    if (!user) return undefined;
     
     const cleanOpponent = sanitizeHTML(opponentName);
     const cleanPrompt = promptText ? sanitizeHTML(promptText) : undefined;
@@ -1394,10 +1507,15 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       link: `/duel/${newDuel.id}`,
       read: false,
       type: "DUEL_CHALLENGE" as const,
-      category: duelCategory
+      category: duelCategory,
+      user_email: user.email
     };
 
     setNotifications(prev => [newNotif, ...prev]);
+
+    // Opponent Challenge notification
+    const opponentUser = registeredUsers.find(u => u.name.toLowerCase() === cleanOpponent.toLowerCase());
+    const opponentEmail = opponentUser ? opponentUser.email : null;
 
     try {
       await supabase.from("duels").insert({
@@ -1427,16 +1545,175 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         category: newNotif.category,
         user_email: user.email
       });
+
+      if (opponentEmail) {
+        const defenderNotifId = `notif-def-${Date.now()}`;
+        const defenderNotif = {
+          id: defenderNotifId,
+          text: `${user.name} vous a défié en duel d'opinions sur "${duelTitle}". Cliquez pour accepter !`,
+          link: `/duel/${duelId}`,
+          read: false,
+          type: "DUEL_CHALLENGE" as const,
+          category: duelCategory,
+          user_email: opponentEmail
+        };
+        
+        setNotifications(prev => [defenderNotif, ...prev]);
+
+        await supabase.from("notifications").insert({
+          id: defenderNotifId,
+          text: defenderNotif.text,
+          link: defenderNotif.link,
+          read: defenderNotif.read,
+          type: defenderNotif.type,
+          category: defenderNotif.category,
+          user_email: opponentEmail
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return duelId;
+  };
+
+  const updateInterests = async (newInterests: string[]) => {
+    if (!user) return;
+    const userEmail = user.email.toLowerCase();
+    
+    setUser(prev => {
+      if (!prev) return null;
+      return { ...prev, interests: newInterests };
+    });
+    
+    setRegisteredUsers(prev => prev.map(u => {
+      if (u.email.toLowerCase() === userEmail) {
+        return { ...u, interests: newInterests };
+      }
+      return u;
+    }));
+
+    try {
+      await supabase
+        .from("registered_users")
+        .update({
+          interests: JSON.stringify(newInterests)
+        })
+        .eq("email", userEmail);
     } catch (e) {
       console.error(e);
     }
   };
 
+  const challengeArticleToDuel = async (articleId: string, openingArgument: string): Promise<string | undefined> => {
+    if (!user) return undefined;
+    
+    const cleanPrompt = sanitizeHTML(openingArgument);
+
+    let duelTitle = "Publication";
+    let duelCategory: string | undefined = undefined;
+    const foundArticle = articles.find(a => a.id === articleId);
+    if (foundArticle) {
+      duelTitle = foundArticle.title;
+      duelCategory = foundArticle.category;
+    }
+
+    const duelId = `duel-${Date.now()}`;
+    const newDuel: Duel = {
+      id: duelId,
+      articleId,
+      articleTitle: duelTitle,
+      commentId: "article-debate", // Special value to indicate it is an article debate
+      challenger: user.name,
+      challengerStats: { ...user.duelsStats },
+      defender: "En attente",
+      defenderStats: { wins: 0, losses: 0, ratio: 0 },
+      status: "PENDING",
+      roundLimit: 4,
+      currentRound: 1,
+      currentTurn: "CHALLENGER",
+      rounds: [
+        {
+          turn: 1,
+          challengerReply: cleanPrompt,
+          defenderReply: null,
+          challengerLikes: 0,
+          challengerDislikes: 0,
+          defenderLikes: 0,
+          defenderDislikes: 0
+        }
+      ],
+      closesAt: "Dans 48 heures",
+      winner: null
+    };
+
+    setDuels(prev => [...prev, newDuel]);
+
+    const notifId = `notif-${Date.now()}`;
+    const newNotif = {
+      id: notifId,
+      text: `Votre défi de débat sur "${duelTitle}" a été lancé. En attente d'un contradicteur.`,
+      link: `/article/${articleId}`,
+      read: false,
+      type: "DUEL_CHALLENGE" as const,
+      category: duelCategory
+    };
+
+    setNotifications(prev => [newNotif, ...prev]);
+
+    try {
+      await supabase.from("duels").insert({
+        id: duelId,
+        article_id: articleId,
+        article_title: duelTitle,
+        comment_id: "article-debate",
+        challenger: user.name,
+        challenger_stats: JSON.stringify(user.duelsStats),
+        defender: "En attente",
+        defender_stats: JSON.stringify({ wins: 0, losses: 0, ratio: 0 }),
+        status: "PENDING",
+        round_limit: 4,
+        current_round: 1,
+        current_turn: "CHALLENGER",
+        rounds: JSON.stringify(newDuel.rounds),
+        closes_at: "Dans 48 heures",
+        winner: null
+      });
+
+      await supabase.from("notifications").insert({
+        id: newNotif.id,
+        text: newNotif.text,
+        link: newNotif.link,
+        read: newNotif.read,
+        type: newNotif.type,
+        category: newNotif.category,
+        user_email: user.email
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    return duelId;
+  };
+
   const acceptDuel = async (duelId: string) => {
-    setDuels(prev => prev.map(d => d.id === duelId ? { ...d, status: "ACTIVE" } : d));
+    if (!user) return;
+
+    setDuels(prev => prev.map(d => {
+      if (d.id === duelId) {
+        return {
+          ...d,
+          status: "ACTIVE",
+          defender: d.defender === "En attente" ? user.name : d.defender,
+          defenderStats: d.defender === "En attente" ? { ...user.duelsStats } : d.defenderStats
+        };
+      }
+      return d;
+    }));
 
     const foundDuel = duels.find(d => d.id === duelId);
     let duelCategory: string | undefined = undefined;
+    let actualDefender = user.name;
+    let actualDefenderStats = { ...user.duelsStats };
+
     if (foundDuel) {
       const foundArticle = articles.find(a => a.id === foundDuel.articleId);
       if (foundArticle) {
@@ -1447,6 +1724,10 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           duelCategory = "Sport";
         }
       }
+      if (foundDuel.defender !== "En attente") {
+        actualDefender = foundDuel.defender;
+        actualDefenderStats = foundDuel.defenderStats;
+      }
     }
 
     const notifId = `notif-${Date.now()}`;
@@ -1456,15 +1737,29 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       link: `/duel/${duelId}`,
       read: false,
       type: "DUEL_ACCEPT" as const,
-      category: duelCategory
+      category: duelCategory,
+      user_email: user.email
     };
 
     setNotifications(prev => [newNotif, ...prev]);
 
+    // Find challenger email and notify them
+    let challengerEmail: string | null = null;
+    if (foundDuel) {
+      const challengerUser = registeredUsers.find(u => u.name.toLowerCase() === foundDuel.challenger.toLowerCase());
+      if (challengerUser) {
+        challengerEmail = challengerUser.email;
+      }
+    }
+
     try {
       await supabase
         .from("duels")
-        .update({ status: "ACTIVE" })
+        .update({ 
+          status: "ACTIVE",
+          defender: actualDefender,
+          defender_stats: JSON.stringify(actualDefenderStats)
+        })
         .eq("id", duelId);
 
       await supabase.from("notifications").insert({
@@ -1474,8 +1769,23 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         read: newNotif.read,
         type: newNotif.type,
         category: newNotif.category,
-        user_email: user?.email
+        user_email: user.email
       });
+
+      if (challengerEmail) {
+        const challengerNotifId = `notif-chal-${Date.now()}`;
+        const challengerNotifText = `${actualDefender} a accepté votre défi de duel sur "${foundDuel?.articleTitle || 'Débat'}". Le débat commence !`;
+        
+        await supabase.from("notifications").insert({
+          id: challengerNotifId,
+          text: challengerNotifText,
+          link: `/duel/${duelId}`,
+          read: false,
+          type: "DUEL_ACCEPT",
+          category: duelCategory,
+          user_email: challengerEmail
+        });
+      }
     } catch (e) {
       console.error(e);
     }
@@ -1548,6 +1858,29 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             winner: updatedDuel.winner
           })
           .eq("id", duelId);
+
+        if (user) {
+          const otherParticipantName = user.name === updatedDuel.challenger ? updatedDuel.defender : updatedDuel.challenger;
+          const otherParticipantUser = registeredUsers.find(u => u.name.toLowerCase() === otherParticipantName.toLowerCase());
+          const otherParticipantEmail = otherParticipantUser ? otherParticipantUser.email : null;
+
+          if (otherParticipantEmail) {
+            const replyNotifId = `notif-reply-${Date.now()}`;
+            const isClosed = updatedDuel.status === "CLOSED";
+            const replyNotifText = isClosed
+              ? `${user.name} a postulé sa réplique finale. Le débat sur "${updatedDuel.articleTitle}" est clos !`
+              : `${user.name} a répondu dans le débat sur "${updatedDuel.articleTitle}". À votre tour !`;
+
+            await supabase.from("notifications").insert({
+              id: replyNotifId,
+              text: replyNotifText,
+              link: `/duel/${duelId}`,
+              read: false,
+              type: "REPLY",
+              user_email: otherParticipantEmail
+            });
+          }
+        }
       } catch (e) {
         console.error(e);
       }
@@ -1946,6 +2279,16 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       }
 
+      // Followed Duels
+      const savedFollowedDuels = localStorage.getItem("followedDuels");
+      if (savedFollowedDuels) {
+        try {
+          setFollowedDuels(JSON.parse(savedFollowedDuels));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       // Poll Vote
       const savedPollQuestion = localStorage.getItem("pollQuestion");
       const currentQuestion = "Soutenez votre pays pour la Coupe du Monde 2026 !";
@@ -2014,6 +2357,31 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       return next;
     });
+  };
+
+  const followDuel = (duelId: string) => {
+    setFollowedDuels(prev => {
+      if (prev.includes(duelId)) return prev;
+      const updated = [...prev, duelId];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("followedDuels", JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const unfollowDuel = (duelId: string) => {
+    setFollowedDuels(prev => {
+      const updated = prev.filter(id => id !== duelId);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("followedDuels", JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const isFollowingDuel = (duelId: string) => {
+    return followedDuels.includes(duelId);
   };
 
   const setShowWeather = (show: boolean) => {
@@ -2489,7 +2857,60 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               closesAt: d.closes_at,
               winner: d.winner
             };
-            setDuels(prev => prev.map(x => x.id === updatedDuel.id ? updatedDuel : x));
+            setDuels(prev => {
+              const oldDuel = prev.find(x => x.id === updatedDuel.id);
+              if (oldDuel) {
+                const oldRepliesCount = oldDuel.rounds.reduce((acc, r) => acc + (r.challengerReply ? 1 : 0) + (r.defenderReply ? 1 : 0), 0);
+                const newRepliesCount = updatedDuel.rounds.reduce((acc, r) => acc + (r.challengerReply ? 1 : 0) + (r.defenderReply ? 1 : 0), 0);
+
+                if (newRepliesCount > oldRepliesCount) {
+                  const isFollowed = followedDuelsRef.current.includes(updatedDuel.id);
+                  let writer = "";
+                  let newReplyText = "";
+                  const lastRoundIndex = updatedDuel.rounds.length - 1;
+                  const lastRound = updatedDuel.rounds[lastRoundIndex];
+                  const oldLastRound = oldDuel.rounds[lastRoundIndex];
+
+                  if (lastRound.defenderReply && (!oldLastRound || !oldLastRound.defenderReply)) {
+                    writer = updatedDuel.defender;
+                    newReplyText = lastRound.defenderReply;
+                  } else if (lastRound.challengerReply && (!oldLastRound || !oldLastRound.challengerReply)) {
+                    writer = updatedDuel.challenger;
+                    newReplyText = lastRound.challengerReply;
+                  } else if (updatedDuel.rounds.length > oldDuel.rounds.length) {
+                    const prevRound = updatedDuel.rounds[updatedDuel.rounds.length - 2];
+                    writer = updatedDuel.defender;
+                    newReplyText = prevRound.defenderReply || "";
+                  }
+
+                  if (isFollowed && writer !== user?.name) {
+                    const localNotif = {
+                      id: `notif-follow-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                      text: `[Débat Suivi] ${writer} : "${newReplyText.substring(0, 40)}${newReplyText.length > 40 ? '...' : ''}" dans le débat sur "${updatedDuel.articleTitle}"`,
+                      link: `/duel/${updatedDuel.id}`,
+                      read: false,
+                      type: "REPLY" as const
+                    };
+                    setNotifications(prevNotifs => [localNotif, ...prevNotifs]);
+                  }
+                }
+
+                if (oldDuel.status === "PENDING" && updatedDuel.status === "ACTIVE") {
+                  const isFollowed = followedDuelsRef.current.includes(updatedDuel.id);
+                  if (isFollowed && updatedDuel.defender !== user?.name) {
+                    const localNotif = {
+                      id: `notif-follow-accept-${Date.now()}`,
+                      text: `[Débat Suivi] ${updatedDuel.defender} a accepté le défi de duel de ${updatedDuel.challenger} sur "${updatedDuel.articleTitle}" !`,
+                      link: `/duel/${updatedDuel.id}`,
+                      read: false,
+                      type: "DUEL_ACCEPT" as const
+                    };
+                    setNotifications(prevNotifs => [localNotif, ...prevNotifs]);
+                  }
+                }
+              }
+              return prev.map(x => x.id === updatedDuel.id ? updatedDuel : x);
+            });
           } else if (payload.eventType === "DELETE") {
             const d = payload.old as any;
             setDuels(prev => prev.filter(x => x.id !== d.id));
@@ -2565,6 +2986,9 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user) return [];
     const userInterests = user.interests || [];
     return notifications.filter(notif => {
+      if (notif.user_email && notif.user_email !== user.email) {
+        return false;
+      }
       if (!notif.category) return true; // Show direct personal/transactional notifications by default
       return userInterests.includes(notif.category);
     });
@@ -2577,6 +3001,7 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       articles,
       comments,
       duels,
+      commentReactions,
       poll,
       notifications: filteredNotifications,
       searchQuery,
@@ -2586,6 +3011,7 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       loginUser,
       logoutUser,
       completeOnboarding,
+      updateInterests,
       accreditJournalist,
       votePoll,
       changeVotePoll,
@@ -2595,9 +3021,14 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       likeComment,
       dislikeComment,
       challengeToDuel,
+      challengeArticleToDuel,
       acceptDuel,
       postDuelReply,
       voteDuelReply,
+      followedDuels,
+      followDuel,
+      unfollowDuel,
+      isFollowingDuel,
       addArticle,
       updateArticleCorrection,
       reactToArticle,

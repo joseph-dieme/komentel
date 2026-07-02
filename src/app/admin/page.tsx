@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useKomentel } from "@/context/KomentelContext";
+import { useKomentel, decodeHTML } from "@/context/KomentelContext";
 import { 
   Shield, 
   ShieldAlert, 
@@ -506,7 +506,7 @@ export default function AdminPage() {
                             <span className="text-slate-500">{c.createdAt}</span>
                           </div>
                           <p className="text-xs sm:text-sm text-slate-300 bg-white/5 p-3 rounded-lg border border-white/5 leading-relaxed font-sans">
-                            {c.content}
+                            {decodeHTML(c.content)}
                           </p>
                           <div className="flex gap-2 justify-end text-xs">
                             <button

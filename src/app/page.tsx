@@ -290,13 +290,15 @@ function HomeContent() {
     user,
     registeredUsers,
     votedAt,
-    changeVotePoll
+    changeVotePoll,
+    updateInterests
   } = useKomentel();
   
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const [feedFilter, setFeedFilter] = useState<'ALL' | 'MY_POSTS' | 'JOURNALISTS'>('ALL');
+  const [showSubjectsDropdown, setShowSubjectsDropdown] = useState(false);
   
   const selectedCategory = searchParams.get("category") || "Toutes";
   const selectedContinent = searchParams.get("continent") || "Monde";
@@ -393,8 +395,27 @@ function HomeContent() {
       .replace("Août", "August");
   };
 
-  const categories = [
-    "Toutes",
+  const renderDuelBadge = (articleId: string) => {
+    const artDuel = duels.find(d => d.articleId === articleId);
+    if (!artDuel) return null;
+    if (artDuel.status === "ACTIVE") {
+      return (
+        <div className="absolute top-3 right-3 bg-accent text-white text-[8px] font-extrabold uppercase px-2 py-0.5 rounded shadow animate-pulse flex items-center gap-1 border border-accent/20">
+          ⚔️ {t("Débat actif", "Active debate")}
+        </div>
+      );
+    }
+    if (artDuel.status === "PENDING") {
+      return (
+        <div className="absolute top-3 right-3 bg-amber-500 text-white text-[8px] font-extrabold uppercase px-2 py-0.5 rounded shadow flex items-center gap-1 border border-amber-500/20">
+          ⚔️ {t("Défi lancé", "Challenge pending")}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const allCategories = [
     "Actualités",
     "Sport",
     "Santé",
@@ -404,6 +425,10 @@ function HomeContent() {
     "International",
     "Business"
   ];
+
+  const categories = user && user.interests && user.interests.length > 0
+    ? ["Toutes", ...user.interests]
+    : ["Toutes", ...allCategories];
 
   const continents = [
     "Monde",
@@ -494,7 +519,21 @@ function HomeContent() {
     }
   };
 
-  const activeDuels = duels.filter(d => d.status === "ACTIVE");
+  const activeDuels = duels.filter(d => {
+    if (d.status !== "ACTIVE") return false;
+    if (user && user.interests && user.interests.length > 0) {
+      const art = articles.find(a => a.id === d.articleId);
+      if (art) {
+        return user.interests.includes(art.category);
+      }
+      const match = matches.find(m => m.id === d.articleId);
+      if (match) {
+        return user.interests.includes("Sport");
+      }
+      return false;
+    }
+    return true;
+  });
   const carouselArticles = displayedArticles.slice(0, 5);
 
   const handlePrevSlide = (e: React.MouseEvent) => {
@@ -1058,11 +1097,11 @@ function HomeContent() {
           </div>
 
           {/* Row 2: Centres d'intérêt sub-filter pills */}
-          <div className="flex items-center border-t border-white/5 pt-2 h-9">
+          <div className="flex items-center border-t border-white/5 pt-2 h-9 relative">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider select-none w-28 shrink-0 border-r border-white/5 pr-2 mr-2">
               📝 {t("Sujets :", "Topics:")}
             </span>
-            <div className="flex-1 overflow-x-auto flex items-center gap-3 scrollbar-none">
+            <div className="flex-1 overflow-x-auto flex items-center gap-3 scrollbar-none pr-2">
               {categories.map(cat => {
                 const isActive = selectedCategory === cat;
                 const displayLabel = cat === "Toutes" ? t("Tous les sujets", "All Topics") : translateCategoryLocal(cat);
@@ -1071,7 +1110,7 @@ function HomeContent() {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`text-[10px] font-bold py-1 px-3.5 rounded-full border transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`text-[10px] font-bold py-1 px-3.5 rounded-full border transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                       isActive
                         ? "bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.25)]"
                         : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
@@ -1083,6 +1122,51 @@ function HomeContent() {
                 );
               })}
             </div>
+
+            {user && (
+              <div className="relative shrink-0 ml-2">
+                <button
+                  onClick={() => setShowSubjectsDropdown(!showSubjectsDropdown)}
+                  className="text-[9px] font-extrabold py-1 px-3 rounded-full border bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer flex items-center gap-1 uppercase tracking-wider transition-all"
+                >
+                  <span>⚙️</span>
+                  <span>{t("Personnaliser", "Customize")}</span>
+                </button>
+                
+                {showSubjectsDropdown && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-popover z-50 p-3 space-y-2 text-left">
+                    <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-wider border-b border-white/5 pb-1 mb-2">
+                      {t("Mes Sujets", "My Topics")}
+                    </h4>
+                    <div className="space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
+                      {allCategories.map(cat => {
+                        const isSelected = user.interests ? user.interests.includes(cat) : false;
+                        return (
+                          <label
+                            key={cat}
+                            className="flex items-center justify-between text-xs text-slate-300 hover:text-white cursor-pointer py-1 px-1.5 rounded hover:bg-white/5"
+                          >
+                            <span>{cat}</span>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                const currentInterests = user.interests || [];
+                                const updated = isSelected
+                                  ? currentInterests.filter(i => i !== cat)
+                                  : [...currentInterests, cat];
+                                updateInterests(updated);
+                              }}
+                              className="rounded border-white/10 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
         </div>
@@ -1091,41 +1175,7 @@ function HomeContent() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full relative animate-in fade-in duration-300">
         <div className="absolute top-10 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
         
-        {/* Feed Filter Segment Controls (Tous / Journalistes / Mes Publications) */}
-        <div className="flex items-center gap-1.5 mb-6 bg-white/[0.03] border border-white/15 p-1 rounded-xl w-fit">
-          <button
-            onClick={() => setFeedFilter('ALL')}
-            className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              feedFilter === 'ALL'
-                ? "bg-primary text-white shadow"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            {t("Tous les articles", "All Articles")}
-          </button>
-          <button
-            onClick={() => setFeedFilter('JOURNALISTS')}
-            className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              feedFilter === 'JOURNALISTS'
-                ? "bg-primary text-white shadow"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            {t("Journalistes", "Journalists")}
-          </button>
-          {user && (
-            <button
-              onClick={() => setFeedFilter('MY_POSTS')}
-              className={`px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                feedFilter === 'MY_POSTS'
-                  ? "bg-primary text-white shadow"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              {t("Mes Publications", "My Publications")}
-            </button>
-          )}
-        </div>
+
 
         {searchQuery.trim().length > 0 ? (
           <div>
@@ -1159,6 +1209,7 @@ function HomeContent() {
                       <div className="absolute top-3 left-3 bg-primary/95 text-white text-[9px] font-extrabold uppercase px-2 py-0.5 rounded shadow">
                         {language === 'FR' ? art.category : (art.categoryEn || art.category)}
                       </div>
+                      {renderDuelBadge(art.id)}
                     </div>
                     <div className="p-5 flex-1 flex flex-col justify-between">
                       <div>
@@ -1289,6 +1340,7 @@ function HomeContent() {
                           <div className="absolute top-3 left-3 bg-primary text-white text-[9px] font-bold px-2.5 py-0.5 rounded shadow">
                             {language === 'FR' ? art.category : (art.categoryEn || art.category)}
                           </div>
+                          {renderDuelBadge(art.id)}
                         </div>
                         <div className="md:w-2/3 flex flex-col justify-between">
                           <div>
@@ -1475,6 +1527,7 @@ function HomeContent() {
                         >
                           <ChevronRight size={16} />
                         </button>
+                        {renderDuelBadge(carouselArticles[currentSlideIndex].id)}
 
                         <div className="absolute bottom-6 left-6 right-6 z-20 flex flex-col justify-end">
                           <span className="inline-block bg-accent text-white text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded tracking-wider mb-2.5 w-max">
@@ -1490,14 +1543,14 @@ function HomeContent() {
                             <div className="flex items-center gap-3">
                               <button 
                                 onClick={(e) => handleLikeCard(e, carouselArticles[currentSlideIndex].id)}
-                                className="flex items-center gap-1 bg-white/15 hover:bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer border border-white/10"
+                                className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer border ${carouselArticles[currentSlideIndex].userReaction === "like" ? "bg-blue-600/35 border-blue-500 text-blue-300" : "bg-white/15 border-white/10 text-white hover:bg-primary"}`}
                               >
                                 <ThumbsUp size={10} />
                                 <span>{carouselArticles[currentSlideIndex].reactions.like}</span>
                               </button>
                               <button 
                                 onClick={(e) => handleDislikeCard(e, carouselArticles[currentSlideIndex].id)}
-                                className="flex items-center gap-1 bg-white/15 hover:bg-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer border border-white/10"
+                                className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer border ${carouselArticles[currentSlideIndex].userReaction === "sad" ? "bg-red-600/35 border-red-500 text-red-300" : "bg-white/15 border-white/10 text-white hover:bg-accent"}`}
                               >
                                 <ThumbsDown size={10} />
                                 <span>{carouselArticles[currentSlideIndex].reactions.sad}</span>
@@ -1541,6 +1594,7 @@ function HomeContent() {
                           <div className="absolute top-3 left-3 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded tracking-wide">
                             {language === 'FR' ? displayedArticles[1].category : (displayedArticles[1].categoryEn || displayedArticles[1].category)}
                           </div>
+                          {renderDuelBadge(displayedArticles[1].id)}
                         </div>
 
                         <div className="p-4 flex-1 flex flex-col justify-between">
@@ -1559,13 +1613,13 @@ function HomeContent() {
                             <div className="flex items-center gap-2">
                               <button 
                                 onClick={(e) => handleLikeCard(e, displayedArticles[1].id)}
-                                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white"
+                                className={`flex items-center gap-1 text-[10px] transition-colors ${displayedArticles[1].userReaction === "like" ? "text-blue-500 font-bold" : "text-slate-400 hover:text-white"}`}
                               >
                                 <ThumbsUp size={11} /> {displayedArticles[1].reactions.like}
                               </button>
                               <button 
                                 onClick={(e) => handleDislikeCard(e, displayedArticles[1].id)}
-                                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white"
+                                className={`flex items-center gap-1 text-[10px] transition-colors ${displayedArticles[1].userReaction === "sad" ? "text-red-500 font-bold" : "text-slate-400 hover:text-white"}`}
                               >
                                 <ThumbsDown size={11} /> {displayedArticles[1].reactions.sad}
                               </button>
@@ -1812,6 +1866,7 @@ function HomeContent() {
                           <div className="absolute top-3 left-3 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded tracking-wide">
                             {language === 'FR' ? displayedArticles[2].category : (displayedArticles[2].categoryEn || displayedArticles[2].category)}
                           </div>
+                          {renderDuelBadge(displayedArticles[2].id)}
                         </div>
 
                         <div className="p-4 flex-1 flex flex-col justify-between">
@@ -1830,13 +1885,13 @@ function HomeContent() {
                             <div className="flex items-center gap-2">
                               <button 
                                 onClick={(e) => handleLikeCard(e, displayedArticles[2].id)}
-                                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white"
+                                className={`flex items-center gap-1 text-[10px] transition-colors ${displayedArticles[2].userReaction === "like" ? "text-blue-500 font-bold" : "text-slate-400 hover:text-white"}`}
                               >
                                 <ThumbsUp size={11} /> {displayedArticles[2].reactions.like}
                               </button>
                               <button 
                                 onClick={(e) => handleDislikeCard(e, displayedArticles[2].id)}
-                                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-white"
+                                className={`flex items-center gap-1 text-[10px] transition-colors ${displayedArticles[2].userReaction === "sad" ? "text-red-500 font-bold" : "text-slate-400 hover:text-white"}`}
                               >
                                 <ThumbsDown size={11} /> {displayedArticles[2].reactions.sad}
                               </button>
@@ -1874,6 +1929,7 @@ function HomeContent() {
                             {language === 'FR' ? displayedArticles[3].category : (displayedArticles[3].categoryEn || displayedArticles[3].category)}
                           </span>
                         </div>
+                        {renderDuelBadge(displayedArticles[3].id)}
 
                         <div className="relative z-20 mt-auto">
                           <div className="text-[10px] text-slate-300 font-bold uppercase tracking-wider mb-2">
@@ -1889,14 +1945,14 @@ function HomeContent() {
                             <div className="flex items-center gap-3">
                               <button 
                                 onClick={(e) => handleLikeCard(e, displayedArticles[3].id)}
-                                className="flex items-center gap-1 bg-white/10 hover:bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                                className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer border ${displayedArticles[3].userReaction === "like" ? "bg-blue-600/35 border-blue-500 text-blue-300" : "bg-white/10 border border-transparent hover:bg-primary text-white"}`}
                               >
                                 <ThumbsUp size={10} />
                                 <span>{displayedArticles[3].reactions.like}</span>
                               </button>
                               <button 
                                 onClick={(e) => handleDislikeCard(e, displayedArticles[3].id)}
-                                className="flex items-center gap-1 bg-white/10 hover:bg-accent text-white text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                                className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors cursor-pointer border ${displayedArticles[3].userReaction === "sad" ? "bg-red-600/35 border-red-500 text-red-300" : "bg-white/10 border border-transparent hover:bg-accent text-white"}`}
                               >
                                 <ThumbsDown size={10} />
                                 <span>{displayedArticles[3].reactions.sad}</span>
@@ -1941,7 +1997,7 @@ function HomeContent() {
                    "Select the news categories you want to hide from your main feed:")}
               </p>
               <div className="flex flex-wrap gap-2">
-                {categories.filter(c => c !== "Toutes").map(cat => {
+                {allCategories.map(cat => {
                   const isHidden = hiddenCategories.includes(cat);
                   return (
                     <button

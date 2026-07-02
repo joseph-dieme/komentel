@@ -6,12 +6,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { UserPlus, LogIn, CheckCircle2, AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 function LoginContent() {
-  const { registeredUsers, loginUser, registerUser, user } = useKomentel();
+  const { registeredUsers, loginUser, registerUser, user, language } = useKomentel();
   const router = useRouter();
   const searchParams = useSearchParams();
   
+  const t = (frText: string, enText: string) => {
+    return language === "FR" ? frText : enText;
+  };
+
   // Tabs: 'LOGIN' or 'REGISTER'
   const [activeTab, setActiveTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   
@@ -27,6 +32,8 @@ function LoginContent() {
   const [regRole, setRegRole] = useState<'USER' | 'JOURNALIST'>('USER');
   const [regError, setRegError] = useState("");
   const [regSuccess, setRegSuccess] = useState(false);
+  const [regTermsAccepted, setRegTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const redirectPath = searchParams.get("redirect") || "/";
 
@@ -53,12 +60,12 @@ function LoginContent() {
     setRegSuccess(false);
 
     if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) {
-      setRegError("Tous les champs sont obligatoires.");
+      setRegError(t("Tous les champs sont obligatoires.", "All fields are required."));
       return;
     }
 
     if (regPassword.trim().length < 6) {
-      setRegError("Le mot de passe doit faire au moins 6 caractères.");
+      setRegError(t("Le mot de passe doit faire au moins 6 caractères.", "Password must be at least 6 characters."));
       return;
     }
 
@@ -68,7 +75,12 @@ function LoginContent() {
     );
 
     if (emailExists) {
-      setRegError("Cet email est déjà enregistré. Veuillez utiliser un autre email.");
+      setRegError(t("Cet email est déjà enregistré. Veuillez utiliser un autre email.", "This email is already registered. Please use another email."));
+      return;
+    }
+
+    if (!regTermsAccepted) {
+      setRegError(t("Vous devez accepter la politique de confidentialité et la charte d'utilisation.", "You must accept the privacy policy and terms of use."));
       return;
     }
 
@@ -315,17 +327,160 @@ function LoginContent() {
                 </div>
               </div>
 
+              <div className="flex items-start gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="regTerms"
+                  checked={regTermsAccepted}
+                  onChange={e => setRegTermsAccepted(e.target.checked)}
+                  className="mt-0.5 rounded border-white/10 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                />
+                <label htmlFor="regTerms" className="text-[10px] sm:text-xs text-slate-400 leading-normal cursor-pointer select-none">
+                  {t(
+                    "J'accepte la politique de confidentialité et m'engage à respecter la charte d'utilisation (débats courtois, respectueux et sans haine).",
+                    "I accept the privacy policy and agree to respect the terms of use (courteous, respectful debates without hate speech)."
+                  )}
+                  {" "}
+                  <button 
+                    type="button"
+                    onClick={() => setShowTermsModal(true)}
+                    className="text-primary hover:underline font-bold focus:outline-none"
+                  >
+                    {t("Lire en surimpression", "Quick preview")}
+                  </button>
+                  {" "}{t("ou", "or")}{" "}
+                  <Link 
+                    href="/privacy"
+                    target="_blank"
+                    className="text-primary hover:underline font-bold"
+                  >
+                    {t("voir la page complète", "view full page")}
+                  </Link>
+                </label>
+              </div>
+
               <button
                 type="submit"
                 disabled={regSuccess}
                 className="w-full bg-primary hover:bg-primary-hover hover:scale-105 active:scale-95 disabled:bg-slate-800 disabled:text-slate-500 !text-white font-bold py-3 rounded-2xl transition-all text-xs uppercase tracking-wider shadow-premium mt-4 focus:outline-none"
               >
-                Créer mon compte
+                {t("Créer mon compte", "Create my account")}
               </button>
             </form>
           )}
         </div>
       </main>
+
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#12131C]/90 border border-white/10 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-popover relative max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center border-b border-white/5 pb-3">
+              <h3 className="font-serif text-base sm:text-lg font-bold text-white flex items-center gap-1.5 uppercase tracking-wider">
+                ⚖️ {t("Politique & Règles d'Utilisation", "Policy & Terms of Use")}
+              </h3>
+              <button 
+                onClick={() => setShowTermsModal(false)}
+                className="text-slate-400 hover:text-white text-xl font-bold transition-colors cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs text-slate-300 leading-relaxed font-sans scrollbar-thin text-left">
+              <section className="space-y-2">
+                <h4 className="font-serif text-sm font-bold text-primary uppercase tracking-wider">
+                  🛡️ 1. {t("Politique de Confidentialité", "Privacy Policy")}
+                </h4>
+                
+                <div className="space-y-1.5 pl-1">
+                  <p>
+                    <strong className="text-white font-semibold block">{t("Collecte de Données Personnelles :", "Personal Data Collection:")}</strong>
+                    {t(
+                      "Nous recueillons uniquement les informations nécessaires au fonctionnement de votre compte Komentel : votre adresse e-mail, votre mot de passe (chiffré via des algorithmes sécurisés), vos préférences thématiques ainsi que vos contributions actives (commentaires, débats, votes, likes).",
+                      "We only collect the minimum information required to operate your Komentel account: your email address, your password (encrypted using secure algorithms), your selected interests, and your active contributions (comments, debates, votes, likes)."
+                    )}
+                  </p>
+                  
+                  <p>
+                    <strong className="text-white font-semibold block">{t("Usage des informations :", "Information Usage:")}</strong>
+                    {t(
+                      "Ces données sont destinées exclusivement au bon fonctionnement de l'arène de débats bilingue et à la personnalisation thématique de votre page d'accueil. Vos informations ne seront jamais vendues, louées ou cédées à des fins publicitaires à des entreprises tierces.",
+                      "This data is used solely to run the bilingual debate arena and personalize your homepage feed. Your information will never be sold, rented, or shared for advertising purposes with third-party companies."
+                    )}
+                  </p>
+                  
+                  <p>
+                    <strong className="text-white font-semibold block">{t("Sécurité et Hébergement :", "Security & Hosting:")}</strong>
+                    {t(
+                      "Toutes vos données sont stockées de façon hautement sécurisée au sein de l'infrastructure Cloud de Supabase, protégée par des protocoles d'accès stricts.",
+                      "All your data is stored highly securely within the Supabase Cloud infrastructure, protected by strict access control protocols."
+                    )}
+                  </p>
+                </div>
+              </section>
+              
+              <section className="space-y-2 pt-3 border-t border-white/5">
+                <h4 className="font-serif text-sm font-bold text-accent uppercase tracking-wider">
+                  🤝 2. {t("Charte d'Utilisation & Déontologie", "Terms of Use & Code of Conduct")}
+                </h4>
+                
+                <div className="space-y-1.5 pl-1">
+                  <p>
+                    {t(
+                      "Komentel est une plateforme de débats citoyens bilingue promouvant la liberté d'expression responsable. Afin d'assurer un dialogue sain et constructif, vous vous engagez à respecter les règles suivantes :",
+                      "Komentel is a bilingual citizen debate platform promoting responsible free speech. In order to ensure a healthy and constructive dialogue, you agree to respect the following rules:"
+                    )}
+                  </p>
+                  
+                  <ul className="list-disc pl-4 space-y-1 text-slate-350">
+                    <li>
+                      <strong>{t("Courtoisie Obligatoire :", "Mandatory Courtesy:")}</strong>{" "}
+                      {t(
+                        "Focalisez vos arguments sur les faits et les idées, jamais sur la personne de vos contradicteurs. Les attaques personnelles sont prohibées.",
+                        "Focus your arguments on facts and ideas, never on the persona of your opponents. Personal attacks are prohibited."
+                      )}
+                    </li>
+                    <li>
+                      <strong>{t("Zéro Discours de Haine :", "Zero Hate Speech:")}</strong>{" "}
+                      {t(
+                        "Aucun propos injurieux, diffamatoire, raciste, sexiste, homophobe, haineux ou violent ne sera toléré sur la plateforme.",
+                        "No abusive, defamatory, racist, sexist, homophobic, hateful, or violent remarks will be tolerated on the platform."
+                      )}
+                    </li>
+                    <li>
+                      <strong>{t("Arbitrage Démocratique :", "Democratic Arbitration:")}</strong>{" "}
+                      {t(
+                        "Les spectateurs peuvent évaluer la pertinence de vos répliques en votant. Les modérateurs humains et les outils d'IA de Komentel peuvent masquer ou signaler des publications non conformes.",
+                        "Spectators can evaluate the relevance of your replies by voting. Human moderators and Komentel's AI tools can hide or report non-compliant posts."
+                      )}
+                    </li>
+                  </ul>
+                  
+                  <p>
+                    <strong className="text-white font-semibold block">{t("Sanctions et Suspension :", "Sanctions & Suspensions:")}</strong>
+                    {t(
+                      "En cas de manquements graves ou répétés à cette charte, l'administration se réserve le droit de restreindre temporairement ou de suspendre définitivement l'accès à votre compte.",
+                      "In case of serious or repeated violations of this code, the administration reserves the right to temporarily restrict or permanently terminate your account access."
+                    )}
+                  </p>
+                </div>
+              </section>
+            </div>
+            
+            <div className="border-t border-white/5 pt-3 flex justify-end">
+              <button
+                onClick={() => {
+                  setRegTermsAccepted(true);
+                  setShowTermsModal(false);
+                }}
+                className="bg-primary hover:bg-primary-hover hover:scale-105 active:scale-95 text-white text-xs font-bold px-5 py-2 rounded-xl transition-all cursor-pointer shadow-premium"
+              >
+                ✔️ {t("J'accepte et je ferme", "I Accept & Close")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { useKomentel } from "@/context/KomentelContext";
+import { useKomentel, decodeHTML } from "@/context/KomentelContext";
 import { useParams } from "next/navigation";
 import { ChevronRight, Swords, ThumbsUp, ThumbsDown, Award, Clock, ArrowLeft, Send, AlertCircle, HelpCircle } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +17,9 @@ export default function DuelPage() {
     acceptDuel, 
     postDuelReply, 
     voteDuelReply,
+    followDuel,
+    unfollowDuel,
+    isFollowingDuel,
     articles,
     language
   } = useKomentel();
@@ -128,16 +131,31 @@ export default function DuelPage() {
             <ChevronRight size={12} />
             <span className="text-slate-400">Arène 1v1</span>
           </nav>
-          
-          {!articles.some(a => a.id === duel.articleId) ? (
-            <Link href="/sport" className="text-xs text-primary hover:underline font-bold flex items-center gap-1.5 uppercase tracking-wider">
-              <ArrowLeft size={14} /> {t("Retour aux matchs", "Back to Match Center")}
-            </Link>
-          ) : (
-            <Link href={`/article/${duel.articleId}`} className="text-xs text-primary hover:underline font-bold flex items-center gap-1.5 uppercase tracking-wider">
-              <ArrowLeft size={14} /> {t("Retour à l'article", "Back to Article")}
-            </Link>
-          )}
+          <div className="flex items-center gap-4">
+            {user && (
+              <button
+                onClick={() => isFollowingDuel(duel.id) ? unfollowDuel(duel.id) : followDuel(duel.id)}
+                className={`text-[10px] font-bold py-1.5 px-3.5 rounded-full border transition-all cursor-pointer flex items-center gap-1.5 uppercase tracking-wider ${
+                  isFollowingDuel(duel.id)
+                    ? "bg-green-600/20 text-green-400 border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.15)]"
+                    : "bg-white/5 border border-white/10 text-slate-450 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <span>🔔</span>
+                <span>{isFollowingDuel(duel.id) ? t("Discussion Suivie", "Discussion Followed") : t("Suivre le débat", "Follow Debate")}</span>
+              </button>
+            )}
+
+            {!articles.some(a => a.id === duel.articleId) ? (
+              <Link href="/sport" className="text-xs text-primary hover:underline font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                <ArrowLeft size={14} /> {t("Retour aux matchs", "Back to Match Center")}
+              </Link>
+            ) : (
+              <Link href={`/article/${duel.articleId}`} className="text-xs text-primary hover:underline font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                <ArrowLeft size={14} /> {t("Retour à l'article", "Back to Article")}
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Duel Header */}
@@ -159,7 +177,7 @@ export default function DuelPage() {
           </div>
 
           <h1 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-3">
-            Sujet : {duel.articleTitle}
+            Sujet : {decodeHTML(duel.articleTitle)}
           </h1>
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
             Arène Fermée 1v1 · Arbitrage par Réactions du Public
@@ -293,7 +311,7 @@ export default function DuelPage() {
                         <div className="space-y-2">
                           <div className="bg-primary/5 border border-primary/10 rounded-3xl rounded-tl-none p-5 shadow-sm text-slate-200 text-sm font-sans leading-relaxed">
                             <p className="font-bold text-[10px] text-primary uppercase tracking-wider mb-2">{duel.challenger}</p>
-                            {round.challengerReply}
+                            {round.challengerReply ? decodeHTML(round.challengerReply) : null}
                           </div>
                           
                           {/* Voting block for spectators */}
@@ -306,7 +324,7 @@ export default function DuelPage() {
                                   onClick={() => handleVoteClick(idx, 'challenger', 'like')}
                                   className={`flex items-center gap-1 transition-colors rounded-full px-2.5 py-1 ${
                                     getVoteType(idx, 'challenger') === 'like'
-                                      ? "bg-green-600 text-white border border-green-500"
+                                      ? "bg-blue-600 text-white border border-blue-500"
                                       : "text-slate-400 hover:text-white bg-white/5 border border-white/5 disabled:opacity-50"
                                   }`}
                                 >
@@ -344,7 +362,7 @@ export default function DuelPage() {
                         <div className="space-y-2 text-right order-1">
                           <div className="bg-accent/5 border border-accent/10 rounded-3xl rounded-tr-none p-5 shadow-sm text-slate-200 text-sm font-sans leading-relaxed text-left">
                             <p className="font-bold text-[10px] text-accent uppercase tracking-wider mb-2 text-right">{duel.defender}</p>
-                            {round.defenderReply}
+                            {round.defenderReply ? decodeHTML(round.defenderReply) : null}
                           </div>
                           
                           {/* Voting block for spectators */}
@@ -357,7 +375,7 @@ export default function DuelPage() {
                                   onClick={() => handleVoteClick(idx, 'defender', 'like')}
                                   className={`flex items-center gap-1 transition-colors rounded-full px-2.5 py-1 ${
                                     getVoteType(idx, 'defender') === 'like'
-                                      ? "bg-green-600 text-white border border-green-500"
+                                      ? "bg-blue-600 text-white border border-blue-500"
                                       : "text-slate-400 hover:text-white bg-white/5 border border-white/5 disabled:opacity-50"
                                   }`}
                                 >
@@ -402,8 +420,18 @@ export default function DuelPage() {
                   <Swords size={28} className="text-amber-500 mx-auto animate-pulse" />
                   <h4 className="font-serif font-bold text-white">Défi de duel envoyé</h4>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                    Ce duel commencera dès que <span className="font-bold text-slate-300">{duel.defender}</span> aura accepté le défi. Utilisez le panel de test ci-dessus pour simuler son acceptation.
+                    Ce duel commencera dès que <span className="font-bold text-slate-300">{duel.defender}</span> aura accepté le défi.
                   </p>
+                  {isDefender && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => acceptDuel(duel.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-full text-xs uppercase tracking-wider shadow-premium transition-all cursor-pointer"
+                      >
+                        ⚔️ Accepter le défi
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
