@@ -184,98 +184,100 @@ export default function DuelPage() {
           </p>
 
           {/* SIMULATOR ASSISTANT (Prototype testing Helper) */}
-          <div className="bg-white/5 border border-white/5 rounded-2xl p-5 mt-6 shadow-sm">
-            <h4 className="text-xs font-bold text-slate-350 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              💡 Panel de Test des Rôles (Simulateur)
-            </h4>
-            <p className="text-[11px] text-slate-400 leading-normal mb-4">
-              Pour tester les accès et droits distincts des participants et des votants, cliquez sur ces boutons pour vous connecter instantanément sous un profil différent :
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {duel.status === "PENDING" && (
+          {user?.role === "ADMIN" && (
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-5 mt-6 shadow-sm">
+              <h4 className="text-xs font-bold text-slate-350 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                💡 Panel de Test des Rôles (Simulateur)
+              </h4>
+              <p className="text-[11px] text-slate-400 leading-normal mb-4">
+                Pour tester les accès et droits distincts des participants et des votants, cliquez sur ces boutons pour vous connecter instantanément sous un profil différent :
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {duel.status === "PENDING" && (
+                  <button
+                    onClick={() => acceptDuel(duel.id)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider shadow-premium focus:outline-none"
+                  >
+                    ✔️ Simuler l'acceptation du défi par {duel.defender}
+                  </button>
+                )}
+                
                 <button
-                  onClick={() => acceptDuel(duel.id)}
-                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider shadow-premium focus:outline-none"
+                  onClick={() => setUser({
+                    name: duel.challenger,
+                    email: "moussa.diop@komentel.sn",
+                    role: "USER",
+                    duelsStats: { wins: 12, losses: 4, ratio: 75 },
+                    activeDuelingEnabled: true
+                  })}
+                  className={`font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider transition-all focus:outline-none ${
+                    isChallenger
+                      ? "bg-primary text-white shadow-premium"
+                      : "bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
+                  }`}
                 >
-                  ✔️ Simuler l'acceptation du défi par {duel.defender}
+                  🎭 Se connecter comme Challenger ({duel.challenger})
                 </button>
-              )}
-              
-              <button
-                onClick={() => setUser({
-                  name: duel.challenger,
-                  email: "moussa.diop@komentel.sn",
-                  role: "USER",
-                  duelsStats: { wins: 12, losses: 4, ratio: 75 },
-                  activeDuelingEnabled: true
-                })}
-                className={`font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider transition-all focus:outline-none ${
-                  isChallenger
-                    ? "bg-primary text-white shadow-premium"
-                    : "bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
-                }`}
-              >
-                🎭 Se connecter comme Challenger ({duel.challenger})
-              </button>
-              
-              <button
-                onClick={() => setUser({
-                  name: duel.defender,
-                  email: "fatou.sow@komentel.sn",
-                  role: "USER",
-                  duelsStats: { wins: 8, losses: 3, ratio: 72 },
-                  activeDuelingEnabled: true
-                })}
-                className={`font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider transition-all focus:outline-none ${
-                  isDefender
-                    ? "bg-accent text-white shadow-premium"
-                    : "bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
-                }`}
-              >
-                🎭 Se connecter comme Défenseur ({duel.defender})
-              </button>
+                
+                <button
+                  onClick={() => setUser({
+                    name: duel.defender,
+                    email: "fatou.sow@komentel.sn",
+                    role: "USER",
+                    duelsStats: { wins: 8, losses: 3, ratio: 72 },
+                    activeDuelingEnabled: true
+                  })}
+                  className={`font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider transition-all focus:outline-none ${
+                    isDefender
+                      ? "bg-accent text-white shadow-premium"
+                      : "bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
+                  }`}
+                >
+                  🎭 Se connecter comme Défenseur ({duel.defender})
+                </button>
 
-              <button
-                onClick={() => setUser({
-                  name: "Amadou Diallo",
-                  email: "amadou.diallo@komentel.sn",
-                  role: "JOURNALIST",
-                  duelsStats: { wins: 4, losses: 1, ratio: 80 },
-                  activeDuelingEnabled: true
-                })}
-                className={`font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider transition-all focus:outline-none ${
-                  user !== null && isSpectator
-                    ? "bg-green-600 text-white shadow-premium"
-                    : "bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
-                }`}
-              >
-                🎭 Se connecter comme Spectateur (Amadou)
-              </button>
+                <button
+                  onClick={() => setUser({
+                    name: "Amadou Diallo",
+                    email: "amadou.diallo@komentel.sn",
+                    role: "JOURNALIST",
+                    duelsStats: { wins: 4, losses: 1, ratio: 80 },
+                    activeDuelingEnabled: true
+                  })}
+                  className={`font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider transition-all focus:outline-none ${
+                    user !== null && isSpectator
+                      ? "bg-green-600 text-white shadow-premium"
+                      : "bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
+                  }`}
+                >
+                  🎭 Se connecter comme Spectateur (Amadou)
+                </button>
 
-              <button
-                onClick={() => setUser(null)}
-                className={`font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider transition-all focus:outline-none ${
-                  user === null
-                    ? "bg-slate-600 text-white shadow-premium"
-                    : "bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
-                }`}
-              >
-                🚫 Déconnexion (Visiteur)
-              </button>
+                <button
+                  onClick={() => setUser(null)}
+                  className={`font-bold text-[10px] px-5 py-2.5 rounded-full uppercase tracking-wider transition-all focus:outline-none ${
+                    user === null
+                      ? "bg-slate-600 text-white shadow-premium"
+                      : "bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
+                  }`}
+                >
+                  🚫 Déconnexion (Visiteur)
+                </button>
+              </div>
+              
+              {/* Show Current Active Role Banner */}
+              <div className="mt-4 pt-3 border-t border-white/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Rôle Actif :{" "}
+                {isChallenger && <span className="text-primary font-black">Challenger (Écriture permise à son tour)</span>}
+                {isDefender && <span className="text-accent font-black">Défenseur (Écriture permise à son tour)</span>}
+                {isSpectator && (
+                  <span className="text-green-400 font-black">
+                    Spectateur / Votant {user ? `(${user.name})` : "(Visiteur anonyme)"} - Arbitrage autorisé
+                  </span>
+                )}
+              </div>
             </div>
-            
-            {/* Show Current Active Role Banner */}
-            <div className="mt-4 pt-3 border-t border-white/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Rôle Actif :{" "}
-              {isChallenger && <span className="text-primary font-black">Challenger (Écriture permise à son tour)</span>}
-              {isDefender && <span className="text-accent font-black">Défenseur (Écriture permise à son tour)</span>}
-              {isSpectator && (
-                <span className="text-green-400 font-black">
-                  Spectateur / Votant {user ? `(${user.name})` : "(Visiteur anonyme)"} - Arbitrage autorisé
-                </span>
-              )}
-            </div>
-          </div>
+          )}
         </section>
 
         {/* Real-Time Score Dashboard & Arena Grid */}

@@ -160,18 +160,6 @@ export default function JournalistPage() {
     setIsPublished(true);
     setTimeout(() => setIsPublished(false), 5000);
   };
-
-  // Switch role button action
-  const forceSwitchToJournalist = () => {
-    setUser({
-      name: "Amadou Diallo",
-      email: "amadou.diallo@komentel.sn",
-      role: "JOURNALIST",
-      duelsStats: { wins: 4, losses: 1, ratio: 80 },
-      activeDuelingEnabled: true
-    });
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background bg-grid-pattern font-sans text-slate-200">
       <Header />
@@ -180,7 +168,6 @@ export default function JournalistPage() {
         {/* Soft glowing ambient backgrounds */}
         <div className="absolute top-10 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
         
-        {/* Guard warning */}
         {!isJournalist ? (
           <section className="bg-amber-500/10 border-l-4 border-amber-500 rounded-xl p-8 shadow-sm max-w-2xl mx-auto text-center space-y-4">
             <AlertTriangle size={48} className="text-amber-500 mx-auto" />
@@ -189,16 +176,13 @@ export default function JournalistPage() {
               Pour accéder à cet espace d'édition et aux tableaux de bord de monétisation, vous devez être un journaliste accrédité.
             </p>
             <div className="pt-2">
-              <button 
-                onClick={forceSwitchToJournalist}
+              <a 
+                href="/login?redirect=/journalist"
                 className="bg-primary hover:bg-primary-hover hover:scale-105 active:scale-95 text-white text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full shadow transition-all inline-flex items-center gap-1.5 focus:outline-none"
               >
-                🎭 Simuler le rôle Journaliste (Amadou Diallo) <ArrowRight size={14} />
-              </button>
+                🔑 Se connecter avec un compte Journaliste
+              </a>
             </div>
-            <p className="text-[10px] text-slate-500">
-              Ou changez de rôle via le menu Profil en haut à droite.
-            </p>
           </section>
         ) : (
           <div className="space-y-8">

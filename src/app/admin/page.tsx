@@ -108,18 +108,6 @@ export default function AdminPage() {
     setIsPublished(true);
     setTimeout(() => setIsPublished(false), 5000);
   };
-
-  const forceSwitchToAdmin = () => {
-    setUser({
-      name: "Admin Komentel",
-      email: "admin.moderator@komentel.sn",
-      role: "ADMIN",
-      duelsStats: { wins: 0, losses: 0, ratio: 0 },
-      activeDuelingEnabled: false,
-      accredited: true
-    });
-  };
-
   // Filter reported comments
   const reportedComments = comments.filter(c => c.reported);
   
@@ -134,25 +122,21 @@ export default function AdminPage() {
         {/* Soft glowing ambient backgrounds */}
         <div className="absolute top-10 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
         
-        {/* Guard warning */}
         {!isAdmin ? (
-          <section className="bg-red-500/10 border-l-4 border-red-555 rounded-xl p-8 shadow-premium max-w-2xl mx-auto text-center space-y-4">
+          <section className="bg-red-500/10 border-l-4 border-red-500 rounded-xl p-8 shadow-premium max-w-2xl mx-auto text-center space-y-4">
             <ShieldAlert size={48} className="text-red-500 mx-auto" />
             <h2 className="text-2xl font-serif font-bold text-white">Accès Restreint — Espace Administration</h2>
             <p className="text-sm text-slate-350 leading-relaxed">
-              Pour accéder aux fonctionnalités d'arbitrage de duels, de modération de commentaires signalés et d'approbation d'accreditation, vous devez être connecté en tant que membre du Comité Éditorial.
+              Pour accéder aux fonctionnalités d'arbitrage de duels, de modération de commentaires signalés et d'approbation d'accréditation, vous devez être connecté en tant que membre du Comité Éditorial.
             </p>
             <div className="pt-2">
-              <button 
-                onClick={forceSwitchToAdmin}
-                className="bg-primary hover:bg-primary-hover hover:scale-105 active:scale-95 text-white text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full shadow transition-all inline-flex items-center gap-1.5 focus:outline-none animate-pulse"
+              <a 
+                href="/login?redirect=/admin"
+                className="bg-primary hover:bg-primary-hover hover:scale-105 active:scale-95 text-white text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full shadow transition-all inline-flex items-center gap-1.5 focus:outline-none"
               >
-                🛡️ Simuler le rôle Modérateur (Admin)
-              </button>
+                🔑 Se connecter avec un compte Admin
+              </a>
             </div>
-            <p className="text-[10px] text-slate-500">
-              Ou changez de rôle via le menu Profil en haut à droite.
-            </p>
           </section>
         ) : (
           <div className="space-y-8">
