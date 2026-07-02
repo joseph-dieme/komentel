@@ -243,9 +243,17 @@ export const Header: React.FC = () => {
                   }}
                   className="flex items-center gap-2 px-2.5 py-1.5 rounded-full hover:bg-white/5 border border-white/10 transition-colors text-slate-300"
                 >
-                  <div className="w-7 h-7 rounded-full bg-primary/20 text-white flex items-center justify-center font-bold text-[10px] uppercase border border-primary/30">
-                    {user.name.slice(0, 2)}
-                  </div>
+                  {user.photoUrl ? (
+                    <img 
+                      src={user.photoUrl} 
+                      alt={user.name} 
+                      className="w-7 h-7 rounded-full object-cover border border-primary/30"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-primary/20 text-white flex items-center justify-center font-bold text-[10px] uppercase border border-primary/30">
+                      {user.name.slice(0, 2)}
+                    </div>
+                  )}
                   <div className="text-left hidden lg:block pr-1">
                     <p className="text-[11px] font-bold leading-none text-slate-200">{user.name}</p>
                     <p className="text-[9px] text-slate-400 capitalize leading-none mt-0.5">
@@ -260,8 +268,8 @@ export const Header: React.FC = () => {
                     
                     {/* User details */}
                     <div className="px-4 py-3 border-b border-white/5">
-                      <p className="font-sans font-semibold text-xs text-slate-250">{user.name}</p>
-                      <p className="text-[10px] text-slate-405">{user.email}</p>
+                      <p className="font-sans font-semibold text-xs text-slate-200">{user.name}</p>
+                      <p className="text-[10px] text-slate-400">{user.email}</p>
                       {user.role !== "ADMIN" && (
                         <div className="mt-2 py-1 px-2 bg-white/5 rounded-lg flex items-center justify-between text-[11px] text-slate-400 border border-white/5">
                           <span className="flex items-center gap-1 text-[10px]"><Award size={12} className="text-accent" /> {t("Duelliste", "Duelist")}</span>
@@ -272,7 +280,16 @@ export const Header: React.FC = () => {
                       )}
                     </div>
 
-
+                    {/* Customize Profile Option */}
+                    <div className="px-4 py-2 border-b border-white/5">
+                      <Link 
+                        href="/onboarding"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="block text-center text-xs text-primary hover:text-white font-medium py-1.5 bg-white/5 hover:bg-primary/20 rounded-xl transition-all"
+                      >
+                        🎨 {t("Personnaliser mon profil", "Customize my profile")}
+                      </Link>
+                    </div>
 
                     {/* Footer action */}
                     <div className="px-4 pt-2 pb-1">

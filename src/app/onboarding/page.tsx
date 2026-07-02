@@ -36,6 +36,17 @@ function OnboardingContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // Populate form states from existing user details
+  useEffect(() => {
+    if (user) {
+      if (user.interests && selectedInterests.length === 0) setSelectedInterests(user.interests);
+      if (user.bio && !bio) setBio(user.bio);
+      if (user.pressCard && !pressCard) setPressCard(user.pressCard);
+      if (user.media && !media) setMedia(user.media);
+      if (user.photoUrl && !photoUrl) setPhotoUrl(user.photoUrl);
+    }
+  }, [user]);
+
   // Redirect if not logged in
   useEffect(() => {
     if (!user) {
@@ -88,7 +99,7 @@ function OnboardingContent() {
         bio: bio.trim(),
         pressCard: user.role === "JOURNALIST" ? pressCard.trim() : undefined,
         media: user.role === "JOURNALIST" ? media.trim() : undefined,
-        photoUrl: user.role === "JOURNALIST" && photoUrl.trim() ? photoUrl.trim() : undefined
+        photoUrl: photoUrl.trim() ? photoUrl.trim() : undefined
       });
       
       setIsSubmitting(false);
@@ -243,18 +254,36 @@ function OnboardingContent() {
                   </div>
                 </div>
               ) : (
-                /* Simple User Bio */
-                <div className="space-y-1.5 pt-2 border-t border-white/5">
-                  <label className="text-[10px] font-bold text-slate-355 uppercase tracking-wider block">
-                    Votre biographie (Optionnel)
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Écrivez quelques mots sur vous pour votre profil de duelliste et de débatteur citoyen..."
-                    value={bio}
-                    onChange={e => setBio(e.target.value)}
-                    className="w-full border border-white/10 rounded-2xl py-2.5 px-4 text-xs text-white focus:ring-1 focus:ring-primary bg-white/5 focus:bg-white/10 outline-none transition-all resize-none"
-                  ></textarea>
+                /* Simple User Bio & Photo */
+                <div className="space-y-4 pt-2 border-t border-white/5">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-350 uppercase tracking-wider block">
+                      Lien de votre photo de profil
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ex: https://images.unsplash.com/photo-..."
+                      value={photoUrl}
+                      onChange={e => setPhotoUrl(e.target.value)}
+                      className="w-full border border-white/10 rounded-2xl py-2.5 px-4 text-xs text-white focus:ring-1 focus:ring-primary bg-white/5 focus:bg-white/10 outline-none transition-all"
+                    />
+                    <p className="text-[9px] text-slate-500">
+                      Optionnel. Entrez un lien URL d'image valide pour personnaliser votre avatar.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-350 uppercase tracking-wider block">
+                      Votre biographie (Optionnel)
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Écrivez quelques mots sur vous pour votre profil de duelliste et de débatteur citoyen..."
+                      value={bio}
+                      onChange={e => setBio(e.target.value)}
+                      className="w-full border border-white/10 rounded-2xl py-2.5 px-4 text-xs text-white focus:ring-1 focus:ring-primary bg-white/5 focus:bg-white/10 outline-none transition-all resize-none"
+                    ></textarea>
+                  </div>
                 </div>
               )}
 
