@@ -73,7 +73,7 @@ export interface Comment {
   articleId: string;
   parentId: string | null;
   author: string;
-  authorBadge: 'Contributeur actif' | 'Journaliste' | null;
+  authorBadge: 'Contributeur actif' | 'Journaliste' | 'Admin' | null;
   content: string;
   createdAt: string;
   likes: number;
@@ -150,6 +150,7 @@ export interface Notification {
   read: boolean;
   type: 'DUEL_CHALLENGE' | 'DUEL_ACCEPT' | 'REPLY' | 'ALERT';
   category?: string;
+  user_email?: string;
 }
 
 export interface RegisteredUser {
@@ -952,7 +953,8 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             link: n.link,
             read: n.read,
             type: n.type,
-            category: n.category
+            category: n.category,
+            user_email: n.user_email
           }));
           setNotifications(formattedNotifs);
         }
@@ -2655,8 +2657,8 @@ export const KomentelProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             setDuels(prev => {
               const oldDuel = prev.find(x => x.id === updatedDuel.id);
               if (oldDuel) {
-                const oldRepliesCount = oldDuel.rounds.reduce((acc, r) => acc + (r.challengerReply ? 1 : 0) + (r.defenderReply ? 1 : 0), 0);
-                const newRepliesCount = updatedDuel.rounds.reduce((acc, r) => acc + (r.challengerReply ? 1 : 0) + (r.defenderReply ? 1 : 0), 0);
+                const oldRepliesCount = oldDuel.rounds.reduce((acc: number, r: any) => acc + (r.challengerReply ? 1 : 0) + (r.defenderReply ? 1 : 0), 0);
+                const newRepliesCount = updatedDuel.rounds.reduce((acc: number, r: any) => acc + (r.challengerReply ? 1 : 0) + (r.defenderReply ? 1 : 0), 0);
 
                 if (newRepliesCount > oldRepliesCount) {
                   const isFollowed = followedDuelsRef.current.includes(updatedDuel.id);
